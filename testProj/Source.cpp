@@ -2,6 +2,8 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 
+#include "Shader.h"
+
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 
@@ -43,6 +45,7 @@ int main(void)
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, frameBufferSizeCallback);
 
+    Shader shader1("VertexShader1.vert", "FragShader1.frag");
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f,
@@ -50,12 +53,22 @@ int main(void)
         0.0f, 0.5f, 0.0f
     };
 
+    //create vertex buffer
     unsigned int VBO;
     glad_glGenBuffers(1, &VBO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    //create vertex array
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
 
+    //bind vertex array and buffer
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    //set vertex attribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
 
     /* Loop until the user closes the window */
@@ -63,11 +76,15 @@ int main(void)
     {
         processInput(window);
 
-        /* Render here */
+        //clear the screen
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f); 
-
         glClear(GL_COLOR_BUFFER_BIT);
 
+        //render stuff
+        shader1.use();
+        glBindVertexArray(VAO);
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
