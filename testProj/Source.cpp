@@ -11,26 +11,6 @@ void processInput(GLFWwindow* window);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-
-int main(void)
-{
-    std::vector<std::vector<std::vector<float>>> data;
-    readData(data);
-    for (int x = 0; x < data.size(); x++)
-    {
-        for (int y = 0; y < data[0].size(); y++)
-        {
-            for (int z = 0; z < data[0][0].size(); z++)
-            {
-                printf("%f ", data[x][y][z]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
-    return 0;
-}
-
 int render(void)
 {
     GLFWwindow* window;
@@ -72,6 +52,21 @@ int render(void)
         0.5f, -0.5f, 0.0f,
         0.0f, 0.5f, 0.0f
     };*/
+
+
+    //read in the data
+    //std::vector<std::vector<std::vector<float>>> data;
+    float* data;
+    short dimX, dimY, dimZ;
+    readData(data, dimX, dimY, dimZ);
+
+    unsigned int texture;
+    glGenTextures(1, &texture);
+
+    glBindTexture(GL_TEXTURE_3D, texture);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dimX, dimY, dimZ, 0, GL_RED, GL_FLOAT, data);
+
+    free(data);
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f,
@@ -152,4 +147,25 @@ void processInput(GLFWwindow* window)
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+}
+
+int main(void)
+{
+    /*std::vector<std::vector<std::vector<float>>> data;
+    readData(data);
+    for (int x = 0; x < data.size(); x++)
+    {
+        for (int y = 0; y < data[0].size(); y++)
+        {
+            for (int z = 0; z < data[0][0].size(); z++)
+            {
+                printf("%f ", data[x][y][z]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }*/
+
+    render();
+    return 0;
 }

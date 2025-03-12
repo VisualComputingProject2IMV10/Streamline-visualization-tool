@@ -2,4 +2,6 @@
 
 #include <vector>
 
+int readData(float*& output, short& dimX, short& dimY, short& dimZ);
+
 int readData(std::vector<std::vector<std::vector<float>>>& output);
