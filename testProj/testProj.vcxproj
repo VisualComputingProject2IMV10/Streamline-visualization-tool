@@ -142,15 +142,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DataReader.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DataReader.h" />
+    <ClInclude Include="Nifti1.h" />
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="FragShader1.fs" />
     <None Include="vertexShader1.vs" />
+    <None Include="volume-data\brain-map.nii" />
+    <None Include="volume-data\brain-tensors.nii" />
+    <None Include="volume-data\brain-vectors.nii" />
+    <None Include="volume-data\toy-evec.nii" />
+    <None Include="volume-data\toy-map.nii" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -24,9 +24,18 @@
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="DataReader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Nifti1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -36,6 +45,21 @@
     </None>
     <None Include="FragShader1.fs">
       <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="volume-data\brain-map.nii">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="volume-data\brain-tensors.nii">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="volume-data\brain-vectors.nii">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="volume-data\toy-evec.nii">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="volume-data\toy-map.nii">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Shader.h"
+#include "DataReader.h"
 
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
@@ -12,6 +13,25 @@ const unsigned int SCR_HEIGHT = 600;
 
 
 int main(void)
+{
+    std::vector<std::vector<std::vector<float>>> data;
+    readData(data);
+    for (int x = 0; x < data.size(); x++)
+    {
+        for (int y = 0; y < data[0].size(); y++)
+        {
+            for (int z = 0; z < data[0][0].size(); z++)
+            {
+                printf("%f ", data[x][y][z]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
+    return 0;
+}
+
+int render(void)
 {
     GLFWwindow* window;
 
