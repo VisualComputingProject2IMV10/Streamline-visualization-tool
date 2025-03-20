@@ -60,19 +60,33 @@ int render(void)
     short dimX, dimY, dimZ;
     readData(data, dimX, dimY, dimZ);
 
+    //std::cout << dimX <<" "<< dimY <<" "<< dimZ << std::endl;
+
+    //printSlice(data, 0, dimX, dimY);
+
     unsigned int texture;
     glGenTextures(1, &texture);
 
     glBindTexture(GL_TEXTURE_3D, texture);
+
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY, dimX, dimY, dimZ, 0, GL_LUMINANCE, GL_FLOAT, data);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dimX, dimY, dimZ, 0, GL_RED, GL_FLOAT, data);
 
     free(data);
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f
+        //positions            //colors             //texture coords
+        -0.5f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,    1.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f
     };
     unsigned int indices[] = {
         0,1,2,
@@ -101,8 +115,12 @@ int render(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     //set vertex attribute pointers
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GL_FLOAT), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GL_FLOAT), (void*)(6 * sizeof(GL_FLOAT)));
+    glEnableVertexAttribArray(2);
 
 
     /* Loop until the user closes the window */
@@ -115,10 +133,13 @@ int render(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         //render stuff
+        glBindTexture(GL_TEXTURE_3D, texture);
+
         shader1.use();
+        //glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(VAO);
 
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         //glDrawArrays(GL_TRIANGLES, 0, 3);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         

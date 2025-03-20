@@ -1,16 +1,29 @@
 
 #include <iostream>
 #include <fstream> 
-#include <ranges>
 #include "nifti1.h"
 
 #include "DataReader.h"
+
+void printSlice(float* data, int slice, int x, int y)
+{
+	for (int i = 0; i < x; i++) {
+		for (int j = 0; j < y; j++) {
+			//for (int k = 0; k < d3; ++k) {
+				//std::cout << data[i + i * j + i * j * slice] << " ";
+				printf("%.1f ", data[i + i * j + i * j * slice]);
+			//}
+			//printf("\n");
+		}
+		printf("\n");
+	}
+}
 
 int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 {
 	using namespace std;
 
-	const bool printHeader = false;
+	const bool printHeader = true;
 
 	ifstream file("data/toy-map.nii", ios::binary); // Open file in binary mode
 	if (!file) {
@@ -40,13 +53,15 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 	const short d2 = header.dim[2];
 	const short d3 = header.dim[3];
 
+	cout << "d1: " << d1 << " d2: " << d2 << " d3: " << d3 << endl;
+
 	/*vector<vector<vector<float>>> data(d1, vector<vector<float>>
 		(d2, vector<float>(d3, 0)));*/
 	float* data = new float[d1 * d2 * d3];
 
-	for (int i = 0; i < d1; ++i) {
-		for (int j = 0; j < d2; ++j) {
-			for (int k = 0; k < d3; ++k) {
+	for (int i = 0; i < d1; i++) {
+		for (int j = 0; j < d2; j++) {
+			for (int k = 0; k < d3; k++) {
 				float value;
 				file.read((char*)&value, sizeof(value));
 				data[i + i*j + i*j*k] = value;
@@ -58,9 +73,14 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 	}
 
 	output = data;
+	dimX = d1;
+	dimY = d2;
+	dimZ = d3;
 	//cout << "Size of data: " << data.size() << ", " << data[0].size() << ", " << data[0][0].size() << endl;
 
 	file.close();
+
+	//printSlice(data, 2, d1, d2);
 
 	return EXIT_SUCCESS;
 }
