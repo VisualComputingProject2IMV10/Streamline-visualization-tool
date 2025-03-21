@@ -65,6 +65,7 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 				float value;
 				file.read((char*)&value, sizeof(value));
 				data[i + i*j + i*j*k] = value;
+				//data[k + k * j + k * j * i] = value;
 				//printf("%f ", value);
 			}
 			//printf("\n");
