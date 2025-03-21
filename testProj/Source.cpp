@@ -61,36 +61,40 @@ int render(void)
     readData(data, dimX, dimY, dimZ);
 
     //std::cout << dimX <<" "<< dimY <<" "<< dimZ << std::endl;
+    //std::cout << sizeof(data) << std::endl;
 
-    //printSlice(data, 0, dimX, dimY);
+    //printSlice(data, 0, dimX, dimY, dimZ);
 
     unsigned int texture;
     glGenTextures(1, &texture);
 
     glBindTexture(GL_TEXTURE_3D, texture);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY, dimX, dimY, dimZ, 0, GL_LUMINANCE, GL_FLOAT, data);
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dimX, dimY, dimZ, 0, GL_RED, GL_FLOAT, data);
 
     free(data);
 
-    int slice = 0; //0-indexed
+    int slice = 70; //0-indexed
     int nrSlices = dimZ;
     float sliceCoord = (float)slice / (float)(nrSlices - 1);
+    sliceCoord = 0.5f;
 
     float vertices[] = {
         //positions            //colors             //texture coords
-        -0.5f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,    0.0f, 0.0f, sliceCoord,
-        -0.5f,  0.5f, 0.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, sliceCoord,
-         0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,    1.0f, 0.0f, sliceCoord,
-         0.5f,  0.5f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, sliceCoord
+        -0.5f, -0.5f, 0.0f,    1.0f, 0.0f, 0.0f,    0.0f, 1.0f, sliceCoord,
+        -0.5f,  0.5f, 0.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, sliceCoord,
+         0.5f, -0.5f, 0.0f,    0.0f, 0.0f, 1.0f,    1.0f, 1.0f, sliceCoord,
+         0.5f,  0.5f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, sliceCoord
     };
     unsigned int indices[] = {
         0,1,2,

@@ -5,13 +5,14 @@
 
 #include "DataReader.h"
 
-void printSlice(float* data, int slice, int x, int y)
+void printSlice(float* data, int slice, int x, int y, int z)
 {
 	for (int i = 0; i < x; i++) {
 		for (int j = 0; j < y; j++) {
 			//for (int k = 0; k < d3; ++k) {
 				//std::cout << data[i + i * j + i * j * slice] << " ";
-				printf("%.1f ", data[i + i * j + i * j * slice]);
+				//printf("%.1f ", data[i + y * (j + z * slice)]);
+				printf("%.1f ", data[slice + y * (j + z * i)]);
 			//}
 			//printf("\n");
 		}
@@ -47,6 +48,8 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 		{
 			cout << dimension << "\n";
 		}
+
+		//cout << header.slice_end << endl;
 	}
 
 	const short d1 = header.dim[1];
@@ -64,7 +67,11 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 			for (int k = 0; k < d3; k++) {
 				float value;
 				file.read((char*)&value, sizeof(value));
-				data[i + i*j + i*j*k] = value;
+				//data[k + d2*j + d2*d3*i] = value;
+				//data[i + d2*j + d2*d3*k] = value;
+				data[k + d3*(j + d2*i)] = value;
+
+
 				//data[k + k * j + k * j * i] = value;
 				//printf("%f ", value);
 			}
@@ -72,16 +79,15 @@ int readData(float*& output, short &dimX, short &dimY, short &dimZ)
 		}
 		//printf("\n");
 	}
+	file.close();
 
 	output = data;
+
 	dimX = d1;
 	dimY = d2;
 	dimZ = d3;
-	//cout << "Size of data: " << data.size() << ", " << data[0].size() << ", " << data[0][0].size() << endl;
 
-	file.close();
-
-	//printSlice(data, 2, d1, d2);
+	//printSlice(data, 70, d1, d2);
 
 	return EXIT_SUCCESS;
 }
