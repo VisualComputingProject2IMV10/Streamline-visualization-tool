@@ -1,4 +1,4 @@
-#include "src/include/StreamlineTracer.h"
+#include "../include/StreamlineTracer.h"
 #include <cmath>
 #include <iostream>
 #include <random>

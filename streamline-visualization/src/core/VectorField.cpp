@@ -1,10 +1,10 @@
-#include "src/include/VectorField.h"
+#include "../include/VectorField.h"
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 #include <cmath>
-#include "src/extra/nifti1.h"
-#include "src/include/DataReader.h"
+#include "../extra/nifti1.h"
+#include "../include/DataReader.h"
 
 VectorField::VectorField(const char* filename) {
     float* vectorData;

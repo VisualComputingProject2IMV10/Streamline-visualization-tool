@@ -1,5 +1,5 @@
-#include "src/include/StreamlineRenderer.h"
-#include <src/extra/glad.h>
+#include "../include/StreamlineRenderer.h"
+#include "../extra/glad.h"
 #include <iostream>
 #include <cmath>
 

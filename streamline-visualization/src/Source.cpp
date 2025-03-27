@@ -5,7 +5,11 @@
  * This file contains the main application logic for the 3D streamline visualization
  * tool, including initialization, rendering loop, event handling, and GUI.
  */
-#include <src/extra/glad.h>
+#if defined(_POSIX_VERSION)
+#include <unistd.h>
+#endif
+
+#include "extra/glad.h"
 #include <iostream>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -14,18 +18,19 @@
 #include <imgui/imgui.h>
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
+
+
 #include <string>
 #include <cmath>
 #include <algorithm>
 #include <filesystem>
-#include <unistd.h>
 #include <cstdlib>
 
-#include "src/include/Shader.h"
-#include "src/include/DataReader.h"
-#include "src/include/VectorField.h"
-#include "src/include/StreamlineTracer.h"
-#include "src/include/StreamlineRenderer.h"
+#include "include/Shader.h"
+#include "include/DataReader.h"
+#include "include/VectorField.h"
+#include "include/StreamlineTracer.h"
+#include "include/StreamlineRenderer.h"
 
 //------------------------------------------------------------------------------
 // Global variables
@@ -57,8 +62,8 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = "RenderTest/streamline-visualization/src/data/brain-map.nii";
-std::string currentVectorFile = "RenderTest/streamline-visualization/src/data/brain-vectors.nii";
+std::string currentScalarFile = "../data/brain-map.nii";
+std::string currentVectorFile = "../data/brain-vectors.nii";
 
 // Streamline parameters
 int seedDensity = 5;
@@ -931,11 +936,16 @@ int main(int argc, char* argv[]) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Create shaders
-    sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
+    //sliceShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\vertexShader1.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\FragShader1.fs");
+    //sliceShader = new Shader("/streamline-visualization/src/shaders/vertexShader1.vs", "/streamline-visualization/src/shaders/FragShader1.fs");
+    sliceShader = new Shader("vertexShader1.vs", "FragShader1.fs");
+    //sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
     std::cout << "Slice shader loading attempted. Shader ID: " << sliceShader->ID << std::endl;
 
-    streamlineShader = new Shader("shaders/streamlineVertex.vs", "shaders/streamlineFragment.fs");
-    glyphShader = new Shader("shaders/glyphVertex.vs", "shaders/glyphFragment.fs");
+    //streamlineShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineFragment.fs");
+    streamlineShader = new Shader("streamlineVertex.vs", "streamlineFragment.fs");
+    //glyphShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphFragment.fs");
+    glyphShader = new Shader("glyphVertex.vs", "glyphFragment.fs");
 
     // Setup ImGui
     IMGUI_CHECKVERSION();

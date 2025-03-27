@@ -1,8 +1,8 @@
-#include "src/include/DataReader.h"
+#include "../include/DataReader.h"
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include "src/extra/nifti1.h"
+#include "../extra/nifti1.h"
 
 int readData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ) {
     // Open NIFTI file

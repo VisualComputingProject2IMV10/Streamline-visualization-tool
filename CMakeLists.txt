@@ -11,19 +11,23 @@ include_directories(imgui/backends)
 
 # Copy shader files to build directory
 file(GLOB SHADER_FILES
-        "${CMAKE_SOURCE_DIR}/src/*.vs"
-        "${CMAKE_SOURCE_DIR}/src/*.fs"
+        "${CMAKE_SOURCE_DIR}/src/shaders/*.vs"
+        "${CMAKE_SOURCE_DIR}/src/shaders/*.fs"
 )
+#file(GLOB SHADER_FILES
+#        "${CMAKE_SOURCE_DIR}/src/*.vs"
+#        "${CMAKE_SOURCE_DIR}/src/*.fs"
+#)
 file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../)
+#file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../)
 
 add_executable(VCP
-        core/DataReader.cpp
-        extra/glad.c
-        ../Source.cpp
-        core/VectorField.cpp
-        core/StreamlineTracer.cpp
-        core/StreamlineRenderer.cpp
+        streamline-visualization/src/core/DataReader.cpp
+        streamline-visualization/src/extra/glad.c
+        streamline-visualization/src/Source.cpp
+        streamline-visualization/src/core/VectorField.cpp
+        streamline-visualization/src/core/StreamlineTracer.cpp
+        streamline-visualization/src/core/StreamlineRenderer.cpp
 
         # ImGui core files
         imgui/imgui.cpp
@@ -43,19 +47,23 @@ add_executable(VCP
 
 
 find_package(GLFW3 REQUIRED)
-if(GLFW3_FOUND)
-    target_include_directories(VCP PRIVATE ${GLFW3_INCLUDE_DIRS})
-    target_link_libraries(VCP PRIVATE glfw)
-endif()
 
-target_include_directories(VCP PRIVATE /opt/homebrew/include)
-target_link_libraries(VCP PRIVATE /opt/homebrew/lib/libglfw.3.4.dylib)
+target_link_libraries(VCP PRIVATE glfw)
+
+#if(GLFW3_FOUND)
+#    target_include_directories(VCP PRIVATE ${GLFW3_INCLUDE_DIRS})
+#    target_link_libraries(VCP PRIVATE glfw)
+#endif()
+
 
 #target_link_libraries(VCP
 #        ${EIGEN3_LIBRARIES}
 #)
 
 if(APPLE)
+    target_include_directories(VCP PRIVATE /opt/homebrew/include)
+    target_link_libraries(VCP PRIVATE /opt/homebrew/lib/libglfw.3.4.dylib)
+
     target_link_libraries(VCP PRIVATE
             "-framework Cocoa"
             "-framework OpenGL"
@@ -63,5 +71,5 @@ if(APPLE)
             "-framework CoreVideo")
 endif()
 
-find_package(glm REQUIRED)
+find_package(glm CONFIG  REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
