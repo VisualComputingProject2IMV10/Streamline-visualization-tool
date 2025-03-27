@@ -3,11 +3,11 @@ project(VCP)
 
 set(CMAKE_CXX_STANDARD 14)
 
-include_directories(..)
+include_directories(/)
 
 # Add ImGui include directory
-include_directories(../imgui)
-include_directories(../imgui/backends)
+include_directories(imgui)
+include_directories(imgui/backends)
 
 # Copy shader files to build directory
 file(GLOB SHADER_FILES
@@ -26,19 +26,19 @@ add_executable(VCP
         core/StreamlineRenderer.cpp
 
         # ImGui core files
-        ../imgui/imgui.cpp
-        ../imgui/imgui_draw.cpp
-        ../imgui/imgui_tables.cpp
-        ../imgui/imgui_widgets.cpp
+        imgui/imgui.cpp
+        imgui/imgui_draw.cpp
+        imgui/imgui_tables.cpp
+        imgui/imgui_widgets.cpp
 
 
         # ImGui backend files
-        ../imgui/backends/imgui_impl_glfw.cpp
-        ../imgui/backends/imgui_impl_opengl3.cpp
+        imgui/backends/imgui_impl_glfw.cpp
+        imgui/backends/imgui_impl_opengl3.cpp
 )
 
-find_package(Eigen3 REQUIRED)
-include_directories(${EIGEN3_INCLUDE_DIRS})
+#find_package(Eigen3 REQUIRED)
+#include_directories(${EIGEN3_INCLUDE_DIRS})
 
 
 
@@ -51,9 +51,9 @@ endif()
 target_include_directories(VCP PRIVATE /opt/homebrew/include)
 target_link_libraries(VCP PRIVATE /opt/homebrew/lib/libglfw.3.4.dylib)
 
-target_link_libraries(VCP
-        ${EIGEN3_LIBRARIES}
-)
+#target_link_libraries(VCP
+#        ${EIGEN3_LIBRARIES}
+#)
 
 if(APPLE)
     target_link_libraries(VCP PRIVATE

@@ -1,3 +1,0 @@
-/Users/iivangeorgiev/Documents/VCP/RenderTest/streamline-visualization/src/cmake-build-debug/CMakeFiles/VCP.dir
-/Users/iivangeorgiev/Documents/VCP/RenderTest/streamline-visualization/src/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/iivangeorgiev/Documents/VCP/RenderTest/streamline-visualization/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir

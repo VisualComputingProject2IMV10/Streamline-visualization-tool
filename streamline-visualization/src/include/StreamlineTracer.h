@@ -26,6 +26,7 @@ class StreamlineTracer {
 public:
     /**
      * @brief Constructor with streamline generation parameters
+     * 
      * @param field Vector field to trace streamlines through
      * @param step Step size for numerical integration
      * @param steps Maximum number of steps per streamline
@@ -38,31 +39,39 @@ public:
 
     /**
      * @brief Trace a single streamline from a seed point
+     * 
      * @param seed Starting point for the streamline
+     * 
      * @return Vector of points representing the streamline
      */
     std::vector<Point3D> traceStreamline(const Point3D& seed);
 
     /**
      * @brief Generate a uniform grid of seed points
+     * 
      * @param strideX Spacing between seeds in X direction
      * @param strideY Spacing between seeds in Y direction
      * @param strideZ Spacing between seeds in Z direction
+     * 
      * @return Vector of seed points
      */
     std::vector<Point3D> generateSeedGrid(int strideX = 5, int strideY = 5, int strideZ = 5);
 
     /**
      * @brief Generate seed points focused on brain anatomy
+     * 
      * @param seedDensity Relative density of seed points
      * @param minIntensity Minimum intensity threshold for seed placement
+     * 
      * @return Vector of seed points
      */
     std::vector<Point3D> generateUnifiedBrainSeeds(int seedDensity, float minIntensity = 0.15f);
 
     /**
      * @brief Generate seed points optimized for toy dataset
+     * 
      * @param seedDensity Relative density of seed points
+     * 
      * @return Vector of seed points
      */
     std::vector<Point3D> generateToyDatasetSeeds(int seedDensity);
