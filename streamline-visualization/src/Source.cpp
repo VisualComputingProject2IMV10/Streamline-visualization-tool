@@ -296,12 +296,20 @@ void loadData() {
             std::vector<Point3D> seeds;
 
             if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
+
+                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
+
+                //TODO change back
                 // Use specialized toy dataset seeding for toy data
-                seeds = tracer.generateToyDatasetSeeds(seedDensity);
+                //seeds = tracer.generateToyDatasetSeeds(seedDensity);
                 std::cout << "Using specialized toy dataset seeding with " << seeds.size() << " seeds" << std::endl;
             } else if (seedingMode == UNIFIED_BRAIN_SEEDING && isBrainDataset) {
+                
+                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
+
+                //TODO uncomment after testing
                 // Use unified brain seeding for brain data
-                seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
+                //seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
 
                 // Fallback if needed
                 if (seeds.size() < 100) {
@@ -319,8 +327,10 @@ void loadData() {
             // Trace streamlines from all seed points
             std::vector<std::vector<Point3D>> streamlines;
             if (!seeds.empty()) {
-                streamlines = tracer.traceAllStreamlines(seeds);
-                std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
+                //todo
+                //streamlines = tracer.traceAllStreamlines(seeds);
+                streamlines = tracer.traceVectors(seeds);
+                std::cout << "sourcecpp Generated " << streamlines.size() << " streamlines" << std::endl;
             } else {
                 std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
             }
@@ -665,6 +675,15 @@ float sampleScalarData(float x, float y, float z) {
         return 0.0f;
     }
 
+    ////todo simplified way:
+    //int xFloor = std::floorf(x);
+    //int yFloor = std::floorf(y);
+    //int zFloor = std::floorf(z);
+
+    //float intensity = globalScalarData[zFloor + scalarDimZ * (yFloor + scalarDimY * xFloor)];
+    //return intensity;
+
+
     // Ensure coordinates are within bounds
     x = std::max(0.0f, std::min(x, static_cast<float>(scalarDimX - 1.01f)));
     y = std::max(0.0f, std::min(y, static_cast<float>(scalarDimY - 1.01f)));
@@ -957,8 +976,9 @@ int main(int argc, char* argv[]) {
     ImGui::StyleColorsDark();
 
     // Set data file paths relative to the build directory
-    currentScalarFile = "data/brain-map.nii";
-    currentVectorFile = "data/brain-vectors.nii";
+    // todo
+    //currentScalarFile = BRAIN_SCALAR_PATH;
+    //currentVectorFile = BRAIN_VECTOR_PATH;
 
     std::cout << "Updated Scalar File Path: " << currentScalarFile << std::endl;
     std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;

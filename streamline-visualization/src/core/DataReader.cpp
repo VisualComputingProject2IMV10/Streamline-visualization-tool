@@ -168,6 +168,12 @@ int readVectorData(const char* filename, float*& data, short& dimX, short& dimY,
         return EXIT_FAILURE;
     }
 
+    std::cout << "Dimensions:" << std::endl;
+    for (short dim : header.dim)
+    {
+        std::cout << dim << std::endl;
+    }
+
     // Extract dimensions
     dimX = header.dim[1];
     dimY = header.dim[2];
@@ -181,12 +187,27 @@ int readVectorData(const char* filename, float*& data, short& dimX, short& dimY,
     data = new float[numVoxels * numComponents];
 
     // Skip to the data section if there's an extended header
-    if (header.vox_offset > sizeof(nifti_1_header)) {
+    /*if (header.vox_offset > sizeof(nifti_1_header)) {
         file.seekg(header.vox_offset, std::ios::beg);
-    }
+    }*/
 
-    // Read the data
-    file.read(reinterpret_cast<char*>(data), numVoxels * numComponents * sizeof(float));
+   
+    for (int v = 0; v < numComponents; v++)
+    {
+        for (int k = 0; k < dimZ; k++) 
+        {
+            for (int j = 0; j < dimY; j++) 
+            {
+                for (int i = 0; i < dimX; i++) 
+                {
+                    int index = i * (dimZ * dimY * numComponents) + j * (dimZ * numComponents) + k * numComponents + v;
+                    float value;
+                    file.read((char*)&value, sizeof(value));
+                    data[index] = value;
+                }
+            }
+        }
+    }
 
     if (!file.good()) {
         std::cerr << "Error: Failed to read vector data" << std::endl;

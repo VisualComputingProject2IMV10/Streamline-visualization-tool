@@ -18,6 +18,88 @@ StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
     }
 }
 
+std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, float minIntensity, int slice)
+{
+    std::vector<Point3D> seeds;
+
+    if (!vectorField) {
+        std::cerr << "Error: Vector field is nullptr in generateUnifiedBrainSeeds" << std::endl;
+        return seeds;
+    }
+
+    int dimX = vectorField->getDimX();
+    int dimY = vectorField->getDimY();
+    int dimZ = vectorField->getDimZ();
+
+    if (slice < 0 || slice >= dimZ)
+    {
+        std::cerr << "Error: slice out of bounds" << std::endl;
+        return seeds;
+    }
+
+    std::cout << "Generating simple grid slice seeds" << std::endl;
+
+    for (int x = 0; x < dimX; x++)
+    {
+        for (int y = 0; y < dimY; y++)
+        {
+            float intensity = sampleScalarData(x, y, slice);
+
+            if (intensity >= minIntensity)
+            {
+                //float vx, vy, vz;
+                //vectorField->getVector(x, y, slice, vx, vy, vz);
+
+                //TODO magnitude check?
+                seeds.push_back(Point3D(x, y, slice));
+            }
+        }
+    }
+
+    std::cout << "Sampled " << seeds.size() << " seed points" << std::endl;
+    return seeds;
+}
+
+std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds)
+{
+    std::vector<std::vector<Point3D>> streamlines;
+    streamlines.reserve(seeds.size());  // Pre-allocate memory
+
+    for each(Point3D seed in seeds)
+    {
+        // Validate seed point
+        if (!vectorField->isInBounds(seed.x, seed.y, seed.z)) {
+            //std::cerr << "Seed point out of bounds: ("
+           //     << seed.x << ", " << seed.y << ", " << seed.z << ")" << std::endl;
+            continue;
+        }
+
+        float vx, vy, vz;
+        vectorField->getVector(seed.x, seed.y, seed.z, vx, vy, vz);
+        vz = 0;
+        int mag = std::sqrt(vx * vx + vy * vy + vz * vz);
+        if (mag > 0)
+        {
+            vx /= mag;
+            vy /= mag;
+            vz /= mag;
+        }
+        /*vx *= mag;
+        vy *= mag;
+        vz *= mag;*/
+
+        //printf("Vector at point (%.1f, %.1f, %.1f) is [%.3f, %.3f, %.3f]\n", seed.x, seed.y, seed.z, vx, vy, vz);
+
+        Point3D head = Point3D(seed.x + vx, seed.y + vy, seed.z + vz);
+        Point3D tail = Point3D(seed.x - vx, seed.y - vy, seed.z - vz);
+        std::vector<Point3D> vec = { tail, seed, head };
+        streamlines.push_back(vec);
+    }
+
+    std::cout << streamlines.size() << " streamlines computed" << std::endl;
+    return streamlines;
+}
+
 std::vector<Point3D> StreamlineTracer::generateUnifiedBrainSeeds(int seedDensity, float minIntensity) {
     std::vector<Point3D> seeds;
 

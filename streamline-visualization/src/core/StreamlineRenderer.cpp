@@ -8,41 +8,100 @@ StreamlineRenderer::StreamlineRenderer(Shader* shaderProgram, float width)
     // Initialize OpenGL buffers
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 }
 
 StreamlineRenderer::~StreamlineRenderer() {
     // Clean up OpenGL resources
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
 }
 
 void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3D>>& streamlines, bool isToyDataset) {
     // Format for each vertex: [x,y,z,r,g,b]
     std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    unsigned int currentIndex = 0;
+
+    for (int i = 0; i < streamlines.size(); i++)
+    {
+        if (streamlines[i].empty()) continue;
+
+        for (int j = 0; j < streamlines[i].size()-1; j++)
+        {
+            //get color based on direction
+            float r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
+            float g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
+            float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
+            b = 0.0f;
+
+            //Add point to segment
+            vertices.push_back(streamlines[i][j].x);
+            vertices.push_back(streamlines[i][j].y);
+            vertices.push_back(streamlines[i][j].z);
+            vertices.push_back(r);
+            vertices.push_back(g);
+            vertices.push_back(b);
+
+            //TODO this notation might be a problem
+            indices.push_back(currentIndex);
+            currentIndex++;
+        }
+        //manually add last vertex since we can't calculate the angle
+        float r = vertices[vertices.size() - 3];
+        float g = vertices[vertices.size() - 2];
+        float b = vertices[vertices.size() - 1];
+        vertices.push_back(streamlines[i][streamlines[i].size() - 1].x);
+        vertices.push_back(streamlines[i][streamlines[i].size() - 1].y);
+        vertices.push_back(streamlines[i][streamlines[i].size() - 1].z);
+        vertices.push_back(r);
+        vertices.push_back(g);
+        vertices.push_back(b);
+
+        indices.push_back(currentIndex);
+        currentIndex++;
+        indices.push_back(0xFFFF);//primitive restart fixed index
+
+    }
+
+
+
 
     // Process each streamline
+    /*
+    
     for (const auto& streamline : streamlines) {
         // Skip empty streamlines
         if (streamline.empty()) continue;
 
-        if (isToyDataset) {
+        //todo
+        if (isToyDataset || true) {
             // Special coloring for toy datasets to match the PDF example
             for (size_t i = 0; i < streamline.size() - 1; i++) {
                 // Normalize coordinates based on position in the dataset
-                float x_norm = streamline[i].x / 100.0f; // Adjust denominator based on domain size
-                float y_norm = streamline[i].y / 100.0f;
-                float z_norm = streamline[i].z / 100.0f;
+                //todo
+                //float x_norm = streamline[i].x / 100.0f; // Adjust denominator based on domain size
+                //float y_norm = streamline[i].y / 100.0f;
+                //float z_norm = streamline[i].z / 100.0f;
 
                 // Use position to determine color (RGB)
                 // This creates distinct color regions similar to the PDF
-                float r = std::abs(sin(x_norm * 3.14159f));
+                /*float r = std::abs(sin(x_norm * 3.14159f));
                 float g = std::abs(sin(y_norm * 3.14159f + 2.0f));
-                float b = std::abs(sin(z_norm * 3.14159f + 4.0f));
+                float b = std::abs(sin(z_norm * 3.14159f + 4.0f));*/
 
                 // Enhance colors for better visibility
-                r = 0.2f + 0.8f * r;
+               /* r = 0.2f + 0.8f * r;
                 g = 0.2f + 0.8f * g;
-                b = 0.2f + 0.8f * b;
+                b = 0.2f + 0.8f * b;*
+
+                //get color based on direction
+                float r = std::abs(streamline[i+ 1].x - streamline[i].x);
+                float g = std::abs(streamline[i + 1].y - streamline[i].y);
+                float b = std::abs(streamline[i].z - streamline[i + 1].z);
+                b = 0.0f;
+
 
                 // Add both points of the line segment
                 // First point of segment
@@ -54,13 +113,22 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
                 vertices.push_back(b);
 
                 // Second point of segment
-                vertices.push_back(streamline[i+1].x);
+                /*vertices.push_back(streamline[i+1].x);
                 vertices.push_back(streamline[i+1].y);
                 vertices.push_back(streamline[i+1].z);
                 vertices.push_back(r);
                 vertices.push_back(g);
-                vertices.push_back(b);
+                vertices.push_back(b);*
             }
+            float r = vertices[vertices.size() - 3];
+            float g = vertices[vertices.size() - 2];
+            float b = vertices[vertices.size() - 1];
+            vertices.push_back(streamline[streamline.size() - 1].x);
+            vertices.push_back(streamline[streamline.size() - 1].y);
+            vertices.push_back(streamline[streamline.size() - 1].z);
+            vertices.push_back(r);
+            vertices.push_back(g);
+            vertices.push_back(b);
         } else {
             // Original coloring for brain datasets
             // Generate initial color based on streamline's starting position
@@ -146,15 +214,20 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             }
         }
     }
+    */
 
     vertexCount = vertices.size() / 6; // 6 values per vertex (3 position, 3 color)
+    bufferIndexCount = indices.size();
 
     // Bind the vertex array and buffer
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
     // Upload vertex data
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
     // Set vertex attribute pointers
     // Position attribute
@@ -166,7 +239,8 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
     glEnableVertexAttribArray(1);
 
     // Unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     std::cout << "Prepared " << streamlines.size() << " streamlines with "
@@ -342,6 +416,10 @@ void StreamlineRenderer::render() const {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
-    glDrawArrays(GL_LINES, 0, vertexCount);
+    glEnable(GL_PRIMITIVE_RESTART);
+    glPrimitiveRestartIndex(0xFFFF);
+
+    //glDrawArrays(GL_LINES, 0, vertexCount);
+    glDrawElements(GL_LINE_STRIP, bufferIndexCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

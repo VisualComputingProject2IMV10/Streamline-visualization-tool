@@ -81,8 +81,10 @@ public:
 private:
     unsigned int VAO;         ///< OpenGL Vertex Array Object
     unsigned int VBO;         ///< OpenGL Vertex Buffer Object
+    unsigned int EBO;         ///< OpenGL element array buffer object
     Shader* shader;           ///< Shader program for rendering
     int vertexCount;          ///< Number of vertices in the streamlines
+    int bufferIndexCount;      ///< number of indices of vertices to be drawn through the EBO
     float lineWidth;          ///< Width of streamlines in pixels
     ColorMode colorMode;      ///< Current coloring mode
 };
