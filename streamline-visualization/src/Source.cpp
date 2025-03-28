@@ -938,14 +938,14 @@ int main(int argc, char* argv[]) {
     // Create shaders
     //sliceShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\vertexShader1.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\FragShader1.fs");
     //sliceShader = new Shader("/streamline-visualization/src/shaders/vertexShader1.vs", "/streamline-visualization/src/shaders/FragShader1.fs");
-    sliceShader = new Shader("vertexShader1.vs", "FragShader1.fs");
+    sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
     //sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
     std::cout << "Slice shader loading attempted. Shader ID: " << sliceShader->ID << std::endl;
 
     //streamlineShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineFragment.fs");
-    streamlineShader = new Shader("streamlineVertex.vs", "streamlineFragment.fs");
+    streamlineShader = new Shader("shaders/streamlineVertex.vs", "shaders/streamlineFragment.fs");
     //glyphShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphFragment.fs");
-    glyphShader = new Shader("glyphVertex.vs", "glyphFragment.fs");
+    glyphShader = new Shader("shaders/glyphVertex.vs", "shaders/glyphFragment.fs");
 
     // Setup ImGui
     IMGUI_CHECKVERSION();
@@ -1054,12 +1054,13 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for scalar data file
         if (ImGui::BeginCombo("Scalar Data", currentScalarFile.c_str())) {
-            if (ImGui::Selectable("data/toy-map.nii")) {
-                currentScalarFile = "data/toy-map.nii";
+            if (ImGui::Selectable("./data/toy-map.nii")) {
+                currentScalarFile = "./data/toy-map.nii";
                 needReload = true;
             }
-            if (ImGui::Selectable("data/brain-map.nii")) {
-                currentScalarFile = "data/brain-map.nii";
+            if (ImGui::Selectable("brain-map.nii")) {
+                currentScalarFile = "brain-map.nii";
+                //currentScalarFile = "data/brain-map.nii";
                 needReload = true;
             }
             ImGui::EndCombo();
@@ -1067,12 +1068,12 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for vector data file
         if (ImGui::BeginCombo("Vector Data", currentVectorFile.c_str())) {
-            if (ImGui::Selectable("data/toy-evec.nii")) {
-                currentVectorFile = "data/toy-evec.nii";
+            if (ImGui::Selectable("toy-evec.nii")) {
+                currentVectorFile = "toy-evec.nii";
                 needReload = true;
             }
-            if (ImGui::Selectable("data/brain-vectors.nii")) {
-                currentVectorFile = "data/brain-vectors.nii";
+            if (ImGui::Selectable("brain-vectors.nii")) {
+                currentVectorFile = "brain-vectors.nii";
                 needReload = true;
             }
             ImGui::EndCombo();

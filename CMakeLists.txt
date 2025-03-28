@@ -9,17 +9,8 @@ include_directories(/)
 include_directories(imgui)
 include_directories(imgui/backends)
 
-# Copy shader files to build directory
-file(GLOB SHADER_FILES
-        "${CMAKE_SOURCE_DIR}/src/shaders/*.vs"
-        "${CMAKE_SOURCE_DIR}/src/shaders/*.fs"
-)
-#file(GLOB SHADER_FILES
-#        "${CMAKE_SOURCE_DIR}/src/*.vs"
-#        "${CMAKE_SOURCE_DIR}/src/*.fs"
-#)
-file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-#file(COPY ${SHADER_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/../)
+#set(SHADER_FILES "${CMAKE_SOURCE_DIR}/src/shaders/*.vs" "${CMAKE_SOURCE_DIR}/src/shaders/*.fs")
+
 
 add_executable(VCP
         streamline-visualization/src/core/DataReader.cpp
@@ -41,24 +32,23 @@ add_executable(VCP
         imgui/backends/imgui_impl_opengl3.cpp
 )
 
-#find_package(Eigen3 REQUIRED)
-#include_directories(${EIGEN3_INCLUDE_DIRS})
+add_custom_command(
+    TARGET VCP POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory              
+        ${CMAKE_SOURCE_DIR}/streamline-visualization/src/shaders $<TARGET_FILE_DIR:VCP>/shaders
+    COMMENT "Copying shaders" VERBATIM
+)
 
-
+add_custom_command(
+    TARGET VCP POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory              
+        ${CMAKE_SOURCE_DIR}/streamline-visualization/src/data $<TARGET_FILE_DIR:VCP>/data
+    COMMENT "Copying nifti files" VERBATIM
+)
 
 find_package(GLFW3 REQUIRED)
 
 target_link_libraries(VCP PRIVATE glfw)
-
-#if(GLFW3_FOUND)
-#    target_include_directories(VCP PRIVATE ${GLFW3_INCLUDE_DIRS})
-#    target_link_libraries(VCP PRIVATE glfw)
-#endif()
-
-
-#target_link_libraries(VCP
-#        ${EIGEN3_LIBRARIES}
-#)
 
 if(APPLE)
     target_include_directories(VCP PRIVATE /opt/homebrew/include)
