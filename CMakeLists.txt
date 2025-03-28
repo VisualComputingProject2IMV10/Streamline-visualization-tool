@@ -9,9 +9,6 @@ include_directories(/)
 include_directories(imgui)
 include_directories(imgui/backends)
 
-#set(SHADER_FILES "${CMAKE_SOURCE_DIR}/src/shaders/*.vs" "${CMAKE_SOURCE_DIR}/src/shaders/*.fs")
-
-
 add_executable(VCP
         streamline-visualization/src/core/DataReader.cpp
         streamline-visualization/src/extra/glad.c
