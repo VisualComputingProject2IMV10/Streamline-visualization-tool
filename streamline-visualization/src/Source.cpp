@@ -36,6 +36,13 @@
 // Global variables
 //------------------------------------------------------------------------------
 
+//Paths
+const char* BRAIN_SCALAR_PATH = "data/brain-map.nii";
+const char* BRAIN_VECTOR_PATH = "data/brain-vectors.nii";
+const char* BRAIN_TENSORS_PATH = "data/brain-tensors.nii";
+const char* TOY_SCALAR_PATH = "data/toy-map.nii";
+const char* TOY_VECTOR_PATH = "data/toy-evec.nii";
+
 // Camera settings
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -62,8 +69,8 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = "data/brain-map.nii";
-std::string currentVectorFile = "data/brain-vectors.nii";
+std::string currentScalarFile = TOY_SCALAR_PATH;
+std::string currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
 int seedDensity = 5;
@@ -1049,12 +1056,12 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for scalar data file
         if (ImGui::BeginCombo("Scalar Data", currentScalarFile.c_str())) {
-            if (ImGui::Selectable("data/toy-map.nii")) {
-                currentScalarFile = "data/toy-map.nii";
+            if (ImGui::Selectable(TOY_SCALAR_PATH)) {
+                currentScalarFile = TOY_SCALAR_PATH;
                 needReload = true;
             }
-            if (ImGui::Selectable("data/brain-map.nii")) {
-                currentScalarFile = "data/brain-map.nii";
+            if (ImGui::Selectable(BRAIN_SCALAR_PATH)) {
+                currentScalarFile = BRAIN_SCALAR_PATH;
                 needReload = true;
             }
             ImGui::EndCombo();
@@ -1062,12 +1069,12 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for vector data file
         if (ImGui::BeginCombo("Vector Data", currentVectorFile.c_str())) {
-            if (ImGui::Selectable("data/toy-evec.nii")) {
-                currentVectorFile = "data/toy-evec.nii";
+            if (ImGui::Selectable(TOY_VECTOR_PATH)) {
+                currentVectorFile = TOY_VECTOR_PATH;
                 needReload = true;
             }
-            if (ImGui::Selectable("data/brain-vectors.nii")) {
-                currentVectorFile = "data/brain-vectors.nii";
+            if (ImGui::Selectable(BRAIN_VECTOR_PATH)) {
+                currentVectorFile = BRAIN_VECTOR_PATH;
                 needReload = true;
             }
             ImGui::EndCombo();
