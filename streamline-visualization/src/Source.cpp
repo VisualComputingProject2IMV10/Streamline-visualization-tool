@@ -62,8 +62,8 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = "../data/brain-map.nii";
-std::string currentVectorFile = "../data/brain-vectors.nii";
+std::string currentScalarFile = "data/brain-map.nii";
+std::string currentVectorFile = "data/brain-vectors.nii";
 
 // Streamline parameters
 int seedDensity = 5;
@@ -1054,13 +1054,12 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for scalar data file
         if (ImGui::BeginCombo("Scalar Data", currentScalarFile.c_str())) {
-            if (ImGui::Selectable("./data/toy-map.nii")) {
-                currentScalarFile = "./data/toy-map.nii";
+            if (ImGui::Selectable("data/toy-map.nii")) {
+                currentScalarFile = "data/toy-map.nii";
                 needReload = true;
             }
-            if (ImGui::Selectable("brain-map.nii")) {
-                currentScalarFile = "brain-map.nii";
-                //currentScalarFile = "data/brain-map.nii";
+            if (ImGui::Selectable("data/brain-map.nii")) {
+                currentScalarFile = "data/brain-map.nii";
                 needReload = true;
             }
             ImGui::EndCombo();
@@ -1068,12 +1067,12 @@ int main(int argc, char* argv[]) {
 
         // Dropdown for vector data file
         if (ImGui::BeginCombo("Vector Data", currentVectorFile.c_str())) {
-            if (ImGui::Selectable("toy-evec.nii")) {
-                currentVectorFile = "toy-evec.nii";
+            if (ImGui::Selectable("data/toy-evec.nii")) {
+                currentVectorFile = "data/toy-evec.nii";
                 needReload = true;
             }
-            if (ImGui::Selectable("brain-vectors.nii")) {
-                currentVectorFile = "brain-vectors.nii";
+            if (ImGui::Selectable("data/brain-vectors.nii")) {
+                currentVectorFile = "data/brain-vectors.nii";
                 needReload = true;
             }
             ImGui::EndCombo();
