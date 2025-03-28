@@ -69,8 +69,8 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = TOY_SCALAR_PATH;
-std::string currentVectorFile = TOY_VECTOR_PATH;
+std::string currentScalarFile = BRAIN_SCALAR_PATH;
+std::string currentVectorFile = BRAIN_VECTOR_PATH;
 
 // Streamline parameters
 int seedDensity = 5;
