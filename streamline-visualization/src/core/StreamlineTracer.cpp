@@ -8,9 +8,9 @@
 extern float sampleScalarData(float x, float y, float z);
 
 StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
-                                 float minMag, float maxLen)
+                                 float minMag, float maxLen, float maxAngle)
     : vectorField(field), stepSize(step), maxSteps(steps),
-      minMagnitude(minMag), maxLength(maxLen) {
+      minMagnitude(minMag), maxLength(maxLen), maxAngle(maxAngle) {
     // Validate input parameters
     if (!field) {
         std::cerr << "Error: Null vector field provided to StreamlineTracer" << std::endl;
@@ -405,6 +405,44 @@ std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
     return streamline;
 }
 
+Point3D StreamlineTracer::vecDiff(Point3D v, Point3D u)
+{
+    Point3D result;
+    result.x = v.x - u.x;
+    result.y = v.y - u.y;
+    result.z = v.z - u.z;
+    return result;
+}
+
+Point3D StreamlineTracer::normalize(Point3D v)
+{
+    Point3D result;
+    float length = std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    if (length > 0)
+    {
+        result.x = v.x / length;
+        result.y = v.y / length;
+        result.z = v.z / length;
+    }
+    return result;
+}
+
+void StreamlineTracer::normalizeInPlace(Point3D v)
+{
+    float length = std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    if (length > 0)
+    {
+        v.x /= length;
+        v.y /= length;
+        v.z /= length;
+    }
+}
+
+float StreamlineTracer::dot(Point3D v, Point3D u)
+{
+    return v.x * u.x + v.y * u.y + v.z * u.z;
+}
+
 std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& seed, int direction) {
     std::vector<Point3D> path;
     Point3D currentPos = seed;
@@ -424,6 +462,22 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
 
         // Strict bounds checking
         if (!vectorField->isInBounds(nextPos.x, nextPos.y, nextPos.z)) break;
+
+        //check if the angle is not too much
+        //Point3D prevPos = path[path.size()];
+        Point3D prevPos;
+        if (!path.empty()) prevPos = path.back();
+
+        //std::cout << "Prevpos: " << prevPos.x << " " << prevPos.y << " " << prevPos.z << std::endl;
+
+        Point3D prevVec = normalize(vecDiff(currentPos, prevPos));
+        Point3D nextVec = normalize(vecDiff(nextPos, currentPos));//TODO this is probably inefficient because we already have the vector somewhere
+        
+        if (dot(prevVec, nextVec) > std::cosf(maxAngle)) //TODO can optimize this away by putting the acos somewhere else
+        {
+            printf("greater than angle\n");
+            break;
+        }
 
         // Calculate step distance
         float stepDist = std::sqrt(

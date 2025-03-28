@@ -35,7 +35,7 @@ public:
      */
     StreamlineTracer(VectorField* field, float step = 0.5f,
                     int steps = 2000, float minMag = 0.01f,
-                    float maxLen = 100.0f);
+                    float maxLen = 100.0f, float maxAngle = 0.01f);
 
     /**
      * @brief Trace a single streamline from a seed point
@@ -92,6 +92,7 @@ private:
     int maxSteps;              ///< Maximum number of steps per streamline
     float minMagnitude;        ///< Minimum vector magnitude before termination
     float maxLength;           ///< Maximum length of a streamline
+    float maxAngle;            ///< Max angle between vectors in the integration step
 
     /**
      * @brief Trace a streamline in one direction from a seed point
@@ -116,4 +117,14 @@ private:
      * @return Next position
      */
     Point3D rk4Integrate(const Point3D& pos, float step);
+
+    //calculates v - u
+    Point3D vecDiff(Point3D v, Point3D u);
+
+    //normalizes a vector v
+    Point3D normalize(Point3D v);
+
+    void normalizeInPlace(Point3D v);
+
+    float dot(Point3D v, Point3D u);
 };
