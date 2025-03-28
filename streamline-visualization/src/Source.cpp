@@ -328,8 +328,8 @@ void loadData() {
             std::vector<std::vector<Point3D>> streamlines;
             if (!seeds.empty()) {
                 //todo
-                //streamlines = tracer.traceAllStreamlines(seeds);
-                streamlines = tracer.traceVectors(seeds);
+                streamlines = tracer.traceAllStreamlines(seeds);
+                //streamlines = tracer.traceVectors(seeds);
                 std::cout << "sourcecpp Generated " << streamlines.size() << " streamlines" << std::endl;
             } else {
                 std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
@@ -675,15 +675,18 @@ float sampleScalarData(float x, float y, float z) {
         return 0.0f;
     }
 
-    ////todo simplified way:
-    //int xFloor = std::floorf(x);
-    //int yFloor = std::floorf(y);
-    //int zFloor = std::floorf(z);
+    if (false)
+    {
+    //todo simplified way:
+    int x0 = std::roundf(x);
+    int y0 = std::roundf(y);
+    int z0 = std::roundf(z);
 
-    //float intensity = globalScalarData[zFloor + scalarDimZ * (yFloor + scalarDimY * xFloor)];
-    //return intensity;
-
-
+    float intensity = globalScalarData[z0 + scalarDimZ * (y0 + scalarDimY * x0)];
+    return intensity;
+    }
+    else
+    {
     // Ensure coordinates are within bounds
     x = std::max(0.0f, std::min(x, static_cast<float>(scalarDimX - 1.01f)));
     y = std::max(0.0f, std::min(y, static_cast<float>(scalarDimY - 1.01f)));
@@ -722,6 +725,8 @@ float sampleScalarData(float x, float y, float z) {
     float v1 = v10 * (1 - wy) + v11 * wy;
 
     return v0 * (1 - wx) + v1 * wx;
+    }
+    
 }
 
 /**

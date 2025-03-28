@@ -59,6 +59,16 @@ void VectorField::interpolateVector(float x, float y, float z, float& vx, float&
         return;
     }
 
+    if (SIMPLE_INTERPOLATION)
+    {
+        int x0 = std::roundf(x);
+        int y0 = std::roundf(y);
+        int z0 = std::roundf(z);
+
+        this->getVector(x0, y0, z0, vx, vy, vz);
+        return;
+    }
+
     // Calculate indices of surrounding voxels
     int x0 = static_cast<int>(x);
     int y0 = static_cast<int>(y);

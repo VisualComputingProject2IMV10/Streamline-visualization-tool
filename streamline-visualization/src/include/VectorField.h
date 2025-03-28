@@ -11,6 +11,9 @@
  */
 class VectorField {
 public:
+
+    const bool SIMPLE_INTERPOLATION = true;
+
     /**
      * @brief Constructor that loads vector field from file
      * @param filename Path to the vector field file (NIFTI format)

@@ -327,9 +327,12 @@ Point3D StreamlineTracer::rk4Integrate(const Point3D& pos, float step) {
     // k1 = v(p)
     float k1x, k1y, k1z;
     vectorField->interpolateVector(pos.x, pos.y, pos.z, k1x, k1y, k1z);
+
     float mag1 = std::sqrt(k1x*k1x + k1y*k1y + k1z*k1z);
     if (mag1 > 0) {
-        k1x /= mag1; k1y /= mag1; k1z /= mag1;
+        k1x /= mag1; 
+        k1y /= mag1; 
+        k1z /= mag1;
     }
 
     // k2 = v(p + step/2 * k1)
@@ -483,7 +486,7 @@ std::vector<std::vector<Point3D>> StreamlineTracer::traceAllStreamlines(const st
         std::vector<std::vector<Point3D>> localStreamlines;
 
 #pragma omp for nowait
-        for (size_t i = 0; i < seeds.size(); ++i) {
+        for (size_t i = 0; i < seeds.size(); i++) {
             std::vector<Point3D> streamline = traceStreamline(seeds[i]);
 
             // Only keep streamlines with sufficient points
