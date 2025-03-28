@@ -936,15 +936,10 @@ int main(int argc, char* argv[]) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Create shaders
-    //sliceShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\vertexShader1.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\FragShader1.fs");
-    //sliceShader = new Shader("/streamline-visualization/src/shaders/vertexShader1.vs", "/streamline-visualization/src/shaders/FragShader1.fs");
     sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
-    //sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
     std::cout << "Slice shader loading attempted. Shader ID: " << sliceShader->ID << std::endl;
 
-    //streamlineShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\streamlineFragment.fs");
     streamlineShader = new Shader("shaders/streamlineVertex.vs", "shaders/streamlineFragment.fs");
-    //glyphShader = new Shader("C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphVertex.vs", "C:\\Visual computing project\\Attempt2\\streamlines-ivan\\streamline-visualization\\src\\shaders\\glyphFragment.fs");
     glyphShader = new Shader("shaders/glyphVertex.vs", "shaders/glyphFragment.fs");
 
     // Setup ImGui
