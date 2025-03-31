@@ -69,8 +69,8 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = BRAIN_SCALAR_PATH;
-std::string currentVectorFile = BRAIN_VECTOR_PATH;
+std::string currentScalarFile = TOY_SCALAR_PATH;
+std::string currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
 int seedDensity = 5;
@@ -271,6 +271,7 @@ void loadData() {
     sliceAxis = 2;  // 0=X, 1=Y, 2=Z (Z by default)
 
     // Update the slice
+    //todo See if we can update vertex attributes when changing slices instead 
     updateSlice();
 
     // Initialize shader parameters
@@ -290,10 +291,13 @@ void loadData() {
     if (vectorField) {
         try {
             // Create streamline tracer
+            //todo add a max angle slider to ui
             StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
 
             // Generate seed points based on selected seeding mode
             std::vector<Point3D> seeds;
+
+            //todo fix this if statement to be mouse seeding or full seeding
 
             if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
 
@@ -330,7 +334,7 @@ void loadData() {
                 //todo
                 streamlines = tracer.traceAllStreamlines(seeds);
                 //streamlines = tracer.traceVectors(seeds);
-                std::cout << "sourcecpp Generated " << streamlines.size() << " streamlines" << std::endl;
+                std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
             } else {
                 std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
             }
@@ -344,6 +348,7 @@ void loadData() {
 
             // Create streamline renderer with proper coloring mode
             if (streamlineShader) {
+                //todo I don't think this is the recommended way to create new instances in c++
                 streamlineRenderer = new StreamlineRenderer(streamlineShader, lineWidth);
                 streamlineRenderer->prepareStreamlines(streamlines, isToyDataset);
                 std::cout << "Streamline renderer initialized with " << streamlines.size() << " streamlines" << std::endl;
@@ -991,6 +996,10 @@ int main(int argc, char* argv[]) {
     // Initial data loading
     loadData();
 
+    //the projection matrix
+    glm::mat4 projection = glm::perspective(glm::radians(fov),
+                                            (float)SCR_WIDTH / (float)SCR_HEIGHT,
+                                            0.1f, 1000.0f);
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
@@ -1006,10 +1015,10 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Create transformation matrices
-        glm::mat4 projection = glm::perspective(glm::radians(fov),
-                                              (float)SCR_WIDTH / (float)SCR_HEIGHT,
-                                              0.1f, 1000.0f);
+        //todo only recalculate the view matrix when the camera moves
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+        //image plane model matrix
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-dimX/2.0f, -dimY/2.0f, -dimZ/2.0f));
         model = glm::scale(model, glm::vec3(1.0f)); // Adjust scale if needed
@@ -1030,7 +1039,7 @@ int main(int argc, char* argv[]) {
             // Render background slice
             sliceShader->use();
             glBindTexture(GL_TEXTURE_3D, texture);
-            sliceShader->setMat4("projection", projection);
+            sliceShader->setMat4("projection", projection); //TODO if this is an inefficient operation we should only set the projection matrix at the start
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
             sliceShader->setFloat("alpha", sliceAlpha);
@@ -1051,6 +1060,8 @@ int main(int argc, char* argv[]) {
 
             streamlineRenderer->render();
         }
+
+        //todo should we do all the imgui code every frame?
 
         // ImGui rendering
         ImGui_ImplOpenGL3_NewFrame();
@@ -1079,28 +1090,28 @@ int main(int argc, char* argv[]) {
         ImGui::Separator();
         ImGui::Text("Data Selection");
 
-        // Dropdown for scalar data file
-        if (ImGui::BeginCombo("Scalar Data", currentScalarFile.c_str())) {
-            if (ImGui::Selectable(TOY_SCALAR_PATH)) {
-                currentScalarFile = TOY_SCALAR_PATH;
-                needReload = true;
-            }
-            if (ImGui::Selectable(BRAIN_SCALAR_PATH)) {
-                currentScalarFile = BRAIN_SCALAR_PATH;
-                needReload = true;
-            }
-            ImGui::EndCombo();
-        }
 
-        // Dropdown for vector data file
-        if (ImGui::BeginCombo("Vector Data", currentVectorFile.c_str())) {
-            if (ImGui::Selectable(TOY_VECTOR_PATH)) {
-                currentVectorFile = TOY_VECTOR_PATH;
-                needReload = true;
+        //TODO select scalar and vector data together
+        if (ImGui::BeginCombo("Dataset", currentScalarFile.c_str()))
+        {
+            if (ImGui::Selectable(TOY_SCALAR_PATH))
+            {
+                if (currentScalarFile != TOY_SCALAR_PATH || currentVectorFile != TOY_VECTOR_PATH)
+                {
+                    currentScalarFile = TOY_SCALAR_PATH;
+                    currentVectorFile = TOY_VECTOR_PATH;
+                    needReload = true;
+                }
             }
-            if (ImGui::Selectable(BRAIN_VECTOR_PATH)) {
-                currentVectorFile = BRAIN_VECTOR_PATH;
-                needReload = true;
+
+            if (ImGui::Selectable(BRAIN_SCALAR_PATH))
+            {
+                if (currentScalarFile != BRAIN_SCALAR_PATH || currentVectorFile != BRAIN_VECTOR_PATH)
+                {
+                    currentScalarFile = BRAIN_SCALAR_PATH;
+                    currentVectorFile = BRAIN_VECTOR_PATH;
+                    needReload = true;
+                }
             }
             ImGui::EndCombo();
         }
