@@ -39,6 +39,17 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
     std::vector<unsigned int> indices;
     unsigned int currentIndex = 0;
 
+    //precalculate the needed space for the vectors so we don't have to reallocate memory every step
+    int totalVertsSize = 0;
+    int totalIndicesSize = 0;
+    for each(std::vector<Point3D> streamline in streamlines)
+    {
+        totalIndicesSize += streamline.size() + 1; //+1 for the primitive restart
+        totalVertsSize += streamline.size() * 6; //6 vertex attributes
+    }
+    vertices.resize(totalVertsSize);
+    indices.reserve(totalIndicesSize);
+
     for (int i = 0; i < streamlines.size(); i++)
     {
         if (streamlines[i].empty()) continue;
@@ -48,188 +59,39 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             //get color based on direction
             float r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
             float g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
-            float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
+            //float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
             b = 0.0f;
 
             //Add point to segment
-            vertices.push_back(streamlines[i][j].x);
-            vertices.push_back(streamlines[i][j].y);
-            vertices.push_back(streamlines[i][j].z);
-            vertices.push_back(r);
-            vertices.push_back(g);
-            vertices.push_back(b);
-
+            vertices[currentIndex * 6 + 0] = streamlines[i][j].x;
+            vertices[currentIndex * 6 + 1] = streamlines[i][j].y;
+            vertices[currentIndex * 6 + 2] = streamlines[i][j].z;
+            vertices[currentIndex * 6 + 3] = r;
+            vertices[currentIndex * 6 + 4] = g;
+            vertices[currentIndex * 6 + 5] = b;
+            
             //TODO this notation might be a problem
             indices.push_back(currentIndex);
             currentIndex++;
         }
+
         //manually add last vertex since we can't calculate the angle
         float r = vertices[vertices.size() - 3];
         float g = vertices[vertices.size() - 2];
         float b = vertices[vertices.size() - 1];
-        vertices.push_back(streamlines[i][streamlines[i].size() - 1].x);
-        vertices.push_back(streamlines[i][streamlines[i].size() - 1].y);
-        vertices.push_back(streamlines[i][streamlines[i].size() - 1].z);
-        vertices.push_back(r);
-        vertices.push_back(g);
-        vertices.push_back(b);
+
+        vertices[currentIndex * 6 + 0] = streamlines[i][streamlines[i].size() - 1].x;
+        vertices[currentIndex * 6 + 1] = streamlines[i][streamlines[i].size() - 1].y;
+        vertices[currentIndex * 6 + 2] = streamlines[i][streamlines[i].size() - 1].z;
+        vertices[currentIndex * 6 + 3] = r;
+        vertices[currentIndex * 6 + 4] = g;
+        vertices[currentIndex * 6 + 5] = b;
 
         indices.push_back(currentIndex);
         currentIndex++;
         indices.push_back(0xFFFF);//primitive restart fixed index
 
     }
-
-
-
-
-    // Process each streamline
-    /*
-    
-    for (const auto& streamline : streamlines) {
-        // Skip empty streamlines
-        if (streamline.empty()) continue;
-
-        //todo
-        if (isToyDataset || true) {
-            // Special coloring for toy datasets to match the PDF example
-            for (size_t i = 0; i < streamline.size() - 1; i++) {
-                // Normalize coordinates based on position in the dataset
-                //todo
-                //float x_norm = streamline[i].x / 100.0f; // Adjust denominator based on domain size
-                //float y_norm = streamline[i].y / 100.0f;
-                //float z_norm = streamline[i].z / 100.0f;
-
-                // Use position to determine color (RGB)
-                // This creates distinct color regions similar to the PDF
-                /*float r = std::abs(sin(x_norm * 3.14159f));
-                float g = std::abs(sin(y_norm * 3.14159f + 2.0f));
-                float b = std::abs(sin(z_norm * 3.14159f + 4.0f));*/
-
-                // Enhance colors for better visibility
-               /* r = 0.2f + 0.8f * r;
-                g = 0.2f + 0.8f * g;
-                b = 0.2f + 0.8f * b;*
-
-                //get color based on direction
-                float r = std::abs(streamline[i+ 1].x - streamline[i].x);
-                float g = std::abs(streamline[i + 1].y - streamline[i].y);
-                float b = std::abs(streamline[i].z - streamline[i + 1].z);
-                b = 0.0f;
-
-
-                // Add both points of the line segment
-                // First point of segment
-                vertices.push_back(streamline[i].x);
-                vertices.push_back(streamline[i].y);
-                vertices.push_back(streamline[i].z);
-                vertices.push_back(r);
-                vertices.push_back(g);
-                vertices.push_back(b);
-
-                // Second point of segment
-                /*vertices.push_back(streamline[i+1].x);
-                vertices.push_back(streamline[i+1].y);
-                vertices.push_back(streamline[i+1].z);
-                vertices.push_back(r);
-                vertices.push_back(g);
-                vertices.push_back(b);*
-            }
-            float r = vertices[vertices.size() - 3];
-            float g = vertices[vertices.size() - 2];
-            float b = vertices[vertices.size() - 1];
-            vertices.push_back(streamline[streamline.size() - 1].x);
-            vertices.push_back(streamline[streamline.size() - 1].y);
-            vertices.push_back(streamline[streamline.size() - 1].z);
-            vertices.push_back(r);
-            vertices.push_back(g);
-            vertices.push_back(b);
-        } else {
-            // Original coloring for brain datasets
-            // Generate initial color based on streamline's starting position
-            // This creates variation between different streamlines
-            float r = 0.5f + 0.5f * sin(streamline[0].x * 0.1f);
-            float g = 0.5f + 0.5f * sin(streamline[0].y * 0.1f + 2.0f);
-            float b = 0.5f + 0.5f * sin(streamline[0].z * 0.1f + 4.0f);
-
-            // Add vertices for line segments with appropriate coloring
-            for (size_t i = 0; i < streamline.size() - 1; i++) {
-                float t = static_cast<float>(i) / static_cast<float>(streamline.size() - 1);
-                float next_t = static_cast<float>(i+1) / static_cast<float>(streamline.size() - 1);
-
-                if (colorMode == DIRECTION_COLOR) {
-                    // Direction-based coloring
-                    float dirX = streamline[i+1].x - streamline[i].x;
-                    float dirY = streamline[i+1].y - streamline[i].y;
-                    float dirZ = streamline[i+1].z - streamline[i].z;
-
-                    // Normalize the direction
-                    float mag = sqrt(dirX*dirX + dirY*dirY + dirZ*dirZ);
-                    if (mag > 0) {
-                        dirX /= mag; dirY /= mag; dirZ /= mag;
-                    }
-
-                    // Direction-based color (RGB = XYZ direction)
-                    float dirR = fabs(dirX);
-                    float dirG = fabs(dirY);
-                    float dirB = fabs(dirZ);
-
-                    // First point
-                    vertices.push_back(streamline[i].x);
-                    vertices.push_back(streamline[i].y);
-                    vertices.push_back(streamline[i].z);
-                    vertices.push_back(dirR);
-                    vertices.push_back(dirG);
-                    vertices.push_back(dirB);
-
-                    // Second point
-                    vertices.push_back(streamline[i+1].x);
-                    vertices.push_back(streamline[i+1].y);
-                    vertices.push_back(streamline[i+1].z);
-                    vertices.push_back(dirR);
-                    vertices.push_back(dirG);
-                    vertices.push_back(dirB);
-                }
-                else if (colorMode == MANUAL_SEED_COLOR) {
-                    // Bright, high-contrast colors for manually seeded streamlines
-                    // First point - bright color
-                    vertices.push_back(streamline[i].x);
-                    vertices.push_back(streamline[i].y);
-                    vertices.push_back(streamline[i].z);
-                    vertices.push_back(1.0f);  // Bright red
-                    vertices.push_back(1.0f - t); // Yellow to red gradient
-                    vertices.push_back(0.0f);
-
-                    // Second point
-                    vertices.push_back(streamline[i+1].x);
-                    vertices.push_back(streamline[i+1].y);
-                    vertices.push_back(streamline[i+1].z);
-                    vertices.push_back(1.0f);
-                    vertices.push_back(1.0f - next_t);
-                    vertices.push_back(0.0f);
-                }
-                else {
-                    // Original gradient coloring method
-                    // First point of segment with its color
-                    vertices.push_back(streamline[i].x);
-                    vertices.push_back(streamline[i].y);
-                    vertices.push_back(streamline[i].z);
-                    vertices.push_back(r * (1.0f-t) + t * 1.0f); // Fade to red
-                    vertices.push_back(g);
-                    vertices.push_back(b * (1.0f-t));
-
-                    // Second point of segment with its color
-                    vertices.push_back(streamline[i+1].x);
-                    vertices.push_back(streamline[i+1].y);
-                    vertices.push_back(streamline[i+1].z);
-                    vertices.push_back(r * (1.0f-next_t) + next_t * 1.0f);
-                    vertices.push_back(g);
-                    vertices.push_back(b * (1.0f-next_t));
-                }
-            }
-        }
-    }
-    */
 
     vertexCount = vertices.size() / 6; // 6 values per vertex (3 position, 3 color)
     bufferIndexCount = indices.size();
@@ -244,11 +106,7 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
 
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-    
-
     // Unbind
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
     std::cout << "Prepared " << streamlines.size() << " streamlines with "
