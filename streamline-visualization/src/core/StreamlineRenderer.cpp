@@ -60,7 +60,7 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             float r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
             float g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
             //float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
-            b = 0.0f;
+            float b = 0.0f;
 
             //Add point to segment
             vertices[currentIndex * 6 + 0] = streamlines[i][j].x;
@@ -281,10 +281,6 @@ void StreamlineRenderer::render() const {
     // Enable depth test but make lines visible above slice
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
-
-    // Enable primitive restart to allow drawing the different streamlines from the same elements buffer
-    glEnable(GL_PRIMITIVE_RESTART);
-    glPrimitiveRestartIndex(0xFFFF);
 
     //glDrawArrays(GL_LINES, 0, vertexCount);
     glDrawElements(GL_LINE_STRIP, bufferIndexCount, GL_UNSIGNED_INT, 0);

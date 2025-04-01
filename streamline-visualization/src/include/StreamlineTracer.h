@@ -93,6 +93,7 @@ private:
     float minMagnitude;        ///< Minimum vector magnitude before termination
     float maxLength;           ///< Maximum length of a streamline
     float maxAngle;            ///< Max angle between vectors in the integration step
+    bool* zeroMask;            ///< the zero mask of the vector field
 
     /**
      * @brief Trace a streamline in one direction from a seed point

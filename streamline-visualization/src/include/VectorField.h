@@ -57,9 +57,9 @@ public:
     bool isInBounds(float x, float y, float z) const;
 
 
-    bool* getZeroMask(int dimX, int dimY, int dimZ);
 
     // Accessor methods
+    bool* getZeroMask(int dimX, int dimY, int dimZ);
 
     /**
      * @brief Get X dimension of the vector field

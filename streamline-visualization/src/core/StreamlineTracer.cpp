@@ -2,7 +2,10 @@
 #include <cmath>
 #include <iostream>
 #include <random>
-#include <algorithm>
+
+#include <glm/vec3.hpp>
+#include <glm/vector_relational.hpp>
+#include <glm/geometric.hpp>
 
 // External function declaration for scalar data sampling (implemented in Source.cpp)
 extern float sampleScalarData(float x, float y, float z);
@@ -16,6 +19,8 @@ StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
         std::cerr << "Error: Null vector field provided to StreamlineTracer" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    this->zeroMask = field->getZeroMask(field->getDimX(), field->getDimY(), field->getDimZ()); //for quicker access
 }
 
 std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, int slice)
@@ -39,22 +44,20 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, i
 
     std::cout << "Generating simple grid slice seeds" << std::endl;
 
+    //preallocate max memory needed for seeds
+    seeds.reserve(dimX * dimY);
+
     for (int x = 0; x < dimX; x++)
     {
         for (int y = 0; y < dimY; y++)
         {
-            float intensity = sampleScalarData(x, y, slice);
-
-            //if (intensity >= minIntensity)
+            if (this->zeroMask[x + y * dimX + slice * dimX * dimZ])
             {
-                //float vx, vy, vz;
-                //vectorField->getVector(x, y, slice, vx, vy, vz);
-
-                //TODO magnitude check?
                 seeds.push_back(Point3D(x, y, slice));
             }
         }
     }
+    seeds.shrink_to_fit();//free the unused memory
 
     std::cout << "Sampled " << seeds.size() << " seed points" << std::endl;
     return seeds;
