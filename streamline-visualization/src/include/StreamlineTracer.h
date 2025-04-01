@@ -83,7 +83,7 @@ public:
      */
     std::vector<std::vector<Point3D>> traceAllStreamlines(const std::vector<Point3D>& seeds);
 
-    std::vector<Point3D> generateSliceGridSeeds(int seedDensity, float minIntensity, int slice);
+    std::vector<Point3D> generateSliceGridSeeds(int seedDensity, int slice);
     std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds);
 
 private:

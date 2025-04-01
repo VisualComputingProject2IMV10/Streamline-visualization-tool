@@ -2,11 +2,11 @@
 
 // Input vertex attributes
 layout (location = 0) in vec3 aPos;      // Vertex position
-layout (location = 1) in vec3 aColor;    // Vertex color
-layout (location = 2) in vec3 aTexCoord; // Texture coordinates
+layout (location = 1) in vec3 aTexCoord;    // Vertex color
+//layout (location = 2) in vec3 aTexCoord; // Texture coordinates
 
 // Output values to fragment shader
-out vec3 vertColor;  // Pass color to fragment shader
+//out vec3 vertColor;  // Pass color to fragment shader
 out vec3 texCoord;   // Pass texture coordinates to fragment shader
 
 // Transformation matrices
@@ -20,6 +20,6 @@ void main()
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 
     // Pass values to fragment shader
-    vertColor = aColor;
+    //vertColor = aColor;
     texCoord = aTexCoord;
 }

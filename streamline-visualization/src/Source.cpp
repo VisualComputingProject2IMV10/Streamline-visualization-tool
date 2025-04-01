@@ -43,6 +43,9 @@ const char* BRAIN_TENSORS_PATH = "data/brain-tensors.nii";
 const char* TOY_SCALAR_PATH = "data/toy-map.nii";
 const char* TOY_VECTOR_PATH = "data/toy-evec.nii";
 
+const char* BRAIN_DATASET = "Brain dataset";
+const char* TOY_DATASET = "Toy dataset";
+
 // Camera settings
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -53,6 +56,10 @@ float fov = 45.0f;
 float lastX = 400.0f;
 float lastY = 300.0f;
 bool firstMouse = true;
+
+//projection matrices
+glm::mat4 projection;
+glm::mat4 view;
 
 // Data variables
 float* globalScalarData = nullptr;
@@ -69,8 +76,12 @@ float lastFrame = 0.0f;
 int sliceVisualizationMode = 1;  // Default to anatomical view
 bool showVectorFieldOverlay = false;
 bool firstLoad = true;
-std::string currentScalarFile = TOY_SCALAR_PATH;
-std::string currentVectorFile = TOY_VECTOR_PATH;
+
+const char* currentDataset = TOY_DATASET;
+
+//todo refactor below code
+const char* currentScalarFile = TOY_SCALAR_PATH;
+const char* currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
 int seedDensity = 5;
@@ -85,6 +96,7 @@ float sliceAlpha = 0.5f;  // Default opacity for the slice
 
 // Global objects
 VectorField* vectorField = nullptr;
+StreamlineTracer* streamlineTracer = nullptr;
 StreamlineRenderer* streamlineRenderer = nullptr;
 Shader* sliceShader = nullptr;
 Shader* streamlineShader = nullptr;
@@ -150,6 +162,277 @@ std::vector<Point3D> generateAnatomicalSeeds(float* scalarData, VectorField* vec
                                            int sliceAxis, int slicePos, int range);
 
 /**
+ * Load the data files into memory and generate the corresponding 3d texture.
+ */
+void loadCurrentDataFiles()
+{
+    std::cout << "Starting loading data file for  " << currentDataset << std::endl;
+
+    // Clean up old resources
+    if (vectorField) {
+        delete vectorField;
+        vectorField = nullptr;
+    }
+    if (globalScalarData) {
+        delete[] globalScalarData;
+        globalScalarData = nullptr;
+    }
+    if (streamlineRenderer) {
+        delete streamlineRenderer;
+        streamlineRenderer = nullptr;
+    }
+    if (streamlineTracer) {
+        delete streamlineTracer;
+        streamlineTracer = nullptr;
+    }
+    if (texture) {
+        glDeleteTextures(1, &texture);
+        texture = 0;
+    }
+
+    //load the scalar data
+    //float* scalarData = nullptr;
+    if (readData(currentScalarFile, globalScalarData, dimX, dimY, dimZ) != EXIT_SUCCESS) {
+        std::cerr << "Failed to read scalar data from " << currentScalarFile << std::endl;
+        return;
+    }
+
+    // Store dimensions for global access
+    scalarDimX = dimX;
+    scalarDimY = dimY;
+    scalarDimZ = dimZ;
+
+    std::cout << "Loaded scalar data: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
+
+    //loading vector data
+    try {
+        vectorField = new VectorField(currentVectorFile); //todo why is this a pointer in the first place?
+    } catch (const std::exception& e) {
+        std::cerr << "Error loading vector field: " << e.what() << std::endl;
+        return;
+    }
+
+    std::cout << "Loaded vector data" << std::endl;
+
+    //calculate an image texture of the scalar data with opacity 0 where the vector field has a zero vector
+    bool* zeroMask = vectorField->getZeroMask(dimX, dimY, dimZ);
+    float* imagedata = new float[dimX * dimY * dimZ * 2]; //two components per voxel
+    for (size_t x = 0; x < dimX; x++)
+    {
+        for (size_t y = 0; y < dimY; y++)
+        {
+            for (size_t z = 0; z < dimZ; z++)
+            {
+                //int indexImg = 2 * (z + dimZ * (y + dimY * x)); //TODO check if these indices are correct
+                //int indexMask = x + y * dimX + z * dimX * dimY;
+                //imagedata[indexImg] = globalScalarData[indexMask];
+                //imagedata[indexImg + 1] = zeroMask[indexMask];
+
+                int imgIndex = 2 * x + 2 * dimX * y + 2 * dimX * dimY * z;
+                imagedata[imgIndex] = globalScalarData[x + y * dimX + z * dimX * dimZ];
+                imagedata[imgIndex + 1] = zeroMask[x + y * dimX + z * dimX * dimZ] ? 1.0f : 0.0f;
+            }
+        }
+    }
+
+    // Setup or update the 3D texture
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_3D, texture);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RG, dimX, dimY, dimZ, 0, GL_RG, GL_FLOAT, imagedata);
+
+    delete[] imagedata;
+    imagedata = nullptr;
+
+    std::cout << "Generated 3d texture" << std::endl;
+
+    // Initialize camera position based on data dimensions
+    cameraPos = glm::vec3(dimX / 4.0f, dimY / 4.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
+    currentSlice = dimZ / 2;
+}
+
+/**
+ * Update the vertex data to show the currently selected slice.
+ */
+void initImgPlane()
+{
+    //float sliceCoord = (float)currentSlice / (float)dimZ;
+
+    float vertexData[] =
+    {
+        //position               //texture coord: the slice is selected in the vertex shader
+         0.0f, 0.0f, 0.0f,       0.0f, 0.0f, 0.5f, //bottom left
+         dimX, 0.0f, 0.0f,       1.0f, 0.0f, 0.5f, //bottom right
+         0.0f, dimY, 0.0f,       0.0f, 1.0f, 0.5f, //top left
+         dimX, dimY, 0.0f,       1.0f, 1.0f, 0.5f  //top right
+    };
+
+    unsigned int vertexIndices[] =
+    {
+        0, 1, 2,
+        1, 2, 3
+    };
+    
+    //init buffers
+    if (!sliceVAO) {
+        glGenVertexArrays(1, &sliceVAO);
+        glGenBuffers(1, &sliceVBO);
+        glGenBuffers(1, &sliceEBO);
+    }
+    glBindVertexArray(sliceVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, sliceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertexData), vertexData, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sliceEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexIndices), vertexIndices, GL_STATIC_DRAW);
+
+    //set vertex attribute pointers
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (void*)0); //position
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GL_FLOAT), (void*)(3 * sizeof(GL_FLOAT))); //tex coord
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0); //unbind vertex array
+}
+
+/**
+ * Generates streamlines
+ */
+std::vector<std::vector<Point3D>> generateStreamlines()
+{
+    if (!vectorField)
+    {
+        throw std::runtime_error("No vectorfield initialized when trying to generate streamlines");
+    }
+
+    std::vector<std::vector<Point3D>> streamlines;
+    try
+    {
+        std::cout << "Started seeding" << std::endl;
+
+        std::vector<Point3D> seeds;
+
+        //todo give different options for seeding
+        std::cout << currentSlice << std::endl;
+        seeds = streamlineTracer->generateSliceGridSeeds(seedDensity, currentSlice);
+        std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
+    
+        if (!seeds.empty()) 
+        {
+            streamlines = streamlineTracer->traceAllStreamlines(seeds);
+            //streamlines = tracer.traceVectors(seeds);
+            std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
+        }
+        else 
+        {
+            std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
+        }
+        return streamlines;
+    } 
+    catch (const std::exception& e) 
+    {
+        std::cerr << "Error generating streamlines: " << e.what() << std::endl;
+        return streamlines;
+    }
+
+
+
+    /*
+    if (vectorField) {
+        try {
+            // Create streamline tracer
+            //todo add a max angle slider to ui
+            StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
+
+            // Generate seed points based on selected seeding mode
+            std::vector<Point3D> seeds;
+
+            //todo fix this if statement to be mouse seeding or full seeding
+            //seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
+            std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
+
+            /*
+            if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
+
+
+                //TODO change back
+                // Use specialized toy dataset seeding for toy data
+                //seeds = tracer.generateToyDatasetSeeds(seedDensity);
+                std::cout << "Using specialized toy dataset seeding with " << seeds.size() << " seeds" << std::endl;
+            } else if (seedingMode == UNIFIED_BRAIN_SEEDING && isBrainDataset) {
+
+                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
+
+                //TODO uncomment after testing
+                // Use unified brain seeding for brain data
+                //seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
+
+                // Fallback if needed
+                if (seeds.size() < 100) {
+                    std::cout << "Few unified brain seeds found, falling back to grid seeding" << std::endl;
+                    seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
+                }
+
+                std::cout << "Using unified brain seeding with " << seeds.size() << " seeds" << std::endl;
+            } else {
+                // Use grid seeding otherwise
+                seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
+                std::cout << "Using grid seeding with " << seeds.size() << " seeds" << std::endl;
+            }
+            *
+
+            // Trace streamlines from all seed points
+            std::vector<std::vector<Point3D>> streamlines;
+            if (!seeds.empty()) {
+                //todo
+                streamlines = tracer.traceAllStreamlines(seeds);
+                //streamlines = tracer.traceVectors(seeds);
+                std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
+            }
+            else {
+                std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
+            }
+
+
+            // Add manual streamlines if they exist
+            if (!manualStreamlines.empty()) {
+                streamlines.insert(streamlines.end(), manualStreamlines.begin(), manualStreamlines.end());
+                std::cout << "Added " << manualStreamlines.size() << " manual streamlines" << std::endl;
+            }
+
+            // Create streamline renderer with proper coloring mode
+            if (streamlineShader) {
+                streamlineRenderer = new StreamlineRenderer(streamlineShader, lineWidth);
+                streamlineRenderer->prepareStreamlines(streamlines, false);
+                //streamlineRenderer->prepareStreamlines(streamlines, isToyDataSet);
+                std::cout << "Streamline renderer initialized with " << streamlines.size() << " streamlines" << std::endl;
+            }
+            else {
+                std::cerr << "Warning: Streamline shader is null" << std::endl;
+            }
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Error generating streamlines: " << e.what() << std::endl;
+        }
+    }
+    else {
+        std::cerr << "Warning: Vector field is null, skipping streamline generation" << std::endl;
+    }
+    */
+}
+
+
+
+/**
  * @brief Load data from files and prepare for visualization
  *
  * This function handles loading scalar and vector data, initializing OpenGL resources,
@@ -163,11 +446,11 @@ void loadData() {
     std::cout << "Starting data loading process..." << std::endl;
 
     // Identify dataset type based on filename
-    bool isToyDataset = (currentScalarFile.find("toy") != std::string::npos);
-    bool isBrainDataset = (currentScalarFile.find("brain") != std::string::npos);
+    //bool isToyDataset = (currentScalarFile.find("toy") != std::string::npos);
+    //bool isBrainDataset = (currentScalarFile.find("brain") != std::string::npos);
 
     // Only set default values if they haven't been set already
-    if (firstLoad) {
+    /*if (firstLoad) {
         // Initialize with defaults only the first time
         if (isToyDataset) {
             stepSize = 0.2f;
@@ -182,6 +465,7 @@ void loadData() {
         }
         firstLoad = false;
     }
+    */
 
     // Clean up old resources
     if (vectorField) {
@@ -208,7 +492,7 @@ void loadData() {
 
     // Load scalar data
     float* scalarData = nullptr;
-    if (readData(currentScalarFile.c_str(), scalarData, dimX, dimY, dimZ) != EXIT_SUCCESS) {
+    if (readData(currentScalarFile, scalarData, dimX, dimY, dimZ) != EXIT_SUCCESS) {
         std::cerr << "Failed to read scalar data from " << currentScalarFile << std::endl;
         return;
     }
@@ -250,7 +534,7 @@ void loadData() {
 
     // Load vector field data
     try {
-        vectorField = new VectorField(currentVectorFile.c_str());
+        vectorField = new VectorField(currentVectorFile);
         std::cout << "Loaded vector field successfully" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error loading vector field: " << e.what() << std::endl;
@@ -258,6 +542,7 @@ void loadData() {
     }
 
     // Set appropriate visualization mode and slice for brain data
+    /*
     if (isBrainDataset) {
         // For brain data, choose a slice showing good anatomical features
         currentSlice = dimZ / 2 + 5; // Adjust to find a good slice
@@ -266,6 +551,8 @@ void loadData() {
         // For toy dataset or other data
         currentSlice = dimZ / 2;
     }
+    */
+    currentSlice = dimZ / 2;
 
     // Always use Z-axis for slicing
     sliceAxis = 2;  // 0=X, 1=Y, 2=Z (Z by default)
@@ -284,6 +571,10 @@ void loadData() {
         std::cerr << "Warning: Slice shader is null" << std::endl;
     }
 
+
+
+
+
     // Adjust camera position based on data dimensions
     cameraPos = glm::vec3(dimX/2.0f, dimY/2.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
 
@@ -298,10 +589,12 @@ void loadData() {
             std::vector<Point3D> seeds;
 
             //todo fix this if statement to be mouse seeding or full seeding
+            //seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
+            std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
 
+            /*
             if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
 
-                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
 
                 //TODO change back
                 // Use specialized toy dataset seeding for toy data
@@ -327,6 +620,7 @@ void loadData() {
                 seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
                 std::cout << "Using grid seeding with " << seeds.size() << " seeds" << std::endl;
             }
+            */
 
             // Trace streamlines from all seed points
             std::vector<std::vector<Point3D>> streamlines;
@@ -350,7 +644,8 @@ void loadData() {
             if (streamlineShader) {
                 //todo I don't think this is the recommended way to create new instances in c++
                 streamlineRenderer = new StreamlineRenderer(streamlineShader, lineWidth);
-                streamlineRenderer->prepareStreamlines(streamlines, isToyDataset);
+                streamlineRenderer->prepareStreamlines(streamlines, false);
+                //streamlineRenderer->prepareStreamlines(streamlines, isToyDataSet);
                 std::cout << "Streamline renderer initialized with " << streamlines.size() << " streamlines" << std::endl;
             } else {
                 std::cerr << "Warning: Streamline shader is null" << std::endl;
@@ -586,6 +881,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     direction.y = sin(glm::radians(pitch));
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
     cameraFront = glm::normalize(direction);
+
+    //update view matrix
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
 /**
@@ -687,7 +985,7 @@ float sampleScalarData(float x, float y, float z) {
     int y0 = std::roundf(y);
     int z0 = std::roundf(z);
 
-    float intensity = globalScalarData[z0 + scalarDimZ * (y0 + scalarDimY * x0)];
+    float intensity = globalScalarData[z0 + scalarDimZ * (y0 + scalarDimY * x0)]; //wrong index
     return intensity;
     }
     else
@@ -916,6 +1214,36 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
         fov = 1.0f;  // Maximum zoom level
     if (fov > 45.0f)
         fov = 45.0f; // Minimum zoom level
+
+    //update projection matrix
+    projection = glm::perspective(glm::radians(fov),
+        (float)SCR_WIDTH / (float)SCR_HEIGHT,
+        0.1f, 1000.0f);
+}
+
+/**
+ * Take all the actions for switching between datasets
+ */
+void switchDataSet()
+{
+    std::cout << "Updated Scalar File Path: " << currentScalarFile << std::endl;
+    std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;
+
+    // Initial data loading
+    //loadData();
+    loadCurrentDataFiles();
+    initImgPlane();
+
+    //Initialize a streamline tracer and renderer
+    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength); //TODO should this be a pointer?
+    streamlineRenderer = new StreamlineRenderer(streamlineShader);
+
+    //initialize view matrix
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+    //generate the initial streamlines
+    std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
+    streamlineRenderer->prepareStreamlines(streamlines);
 }
 
 /**
@@ -973,10 +1301,9 @@ int main(int argc, char* argv[]) {
 
     // Create shaders
     sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
-    std::cout << "Slice shader loading attempted. Shader ID: " << sliceShader->ID << std::endl;
-
     streamlineShader = new Shader("shaders/streamlineVertex.vs", "shaders/streamlineFragment.fs");
     glyphShader = new Shader("shaders/glyphVertex.vs", "shaders/glyphFragment.fs");
+    std::cout << "Shaders loaded with ID's: " << sliceShader->ID  << ", " << streamlineShader->ID << ", " << glyphShader->ID << std::endl;
 
     // Setup ImGui
     IMGUI_CHECKVERSION();
@@ -985,21 +1312,35 @@ int main(int argc, char* argv[]) {
     ImGui_ImplOpenGL3_Init("#version 330 core");
     ImGui::StyleColorsDark();
 
+    switchDataSet();
+
     // Set data file paths relative to the build directory
     // todo
     //currentScalarFile = BRAIN_SCALAR_PATH;
     //currentVectorFile = BRAIN_VECTOR_PATH;
 
-    std::cout << "Updated Scalar File Path: " << currentScalarFile << std::endl;
-    std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;
+    //std::cout << "Updated Scalar File Path: " << currentScalarFile << std::endl;
+    //std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;
 
-    // Initial data loading
-    loadData();
+    //// Initial data loading
+    ////loadData();
+    //loadCurrentDataFiles();
+    //initImgPlane();
 
-    //the projection matrix
-    glm::mat4 projection = glm::perspective(glm::radians(fov),
-                                            (float)SCR_WIDTH / (float)SCR_HEIGHT,
-                                            0.1f, 1000.0f);
+    ////Initialize a streamline tracer and renderer
+    //streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength); //TODO should this be a pointer?
+    //streamlineRenderer = new StreamlineRenderer(streamlineShader);
+
+    ////initialize view matrix
+    //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+    ////generate the initial streamlines
+    //std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
+    //streamlineRenderer->prepareStreamlines(streamlines);
+
+    //generate projection matrix
+    projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
@@ -1011,12 +1352,9 @@ int main(int argc, char* argv[]) {
         processInput(window);
 
         // Clear the screen
-        glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        //glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        glClearColor(0.1f, 0.054f, 0.3f, 1.0f); //some kind of dark blue
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // Create transformation matrices
-        //todo only recalculate the view matrix when the camera moves
-        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         //image plane model matrix
         glm::mat4 model = glm::mat4(1.0f);
@@ -1025,7 +1363,8 @@ int main(int argc, char* argv[]) {
 
         // Create offset model matrix for streamlines to avoid z-fighting
         glm::mat4 streamlineModel = model;
-        streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.01f));
+        streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
+        //streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.01f));
 
         // Set up depth testing
         glEnable(GL_DEPTH_TEST);
@@ -1042,8 +1381,12 @@ int main(int argc, char* argv[]) {
             sliceShader->setMat4("projection", projection); //TODO if this is an inefficient operation we should only set the projection matrix at the start
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
-            sliceShader->setFloat("alpha", sliceAlpha);
-            sliceShader->setInt("visualizationMode", sliceVisualizationMode);
+            //sliceShader->setFloat("alpha", sliceAlpha);
+            //sliceShader->setInt("visualizationMode", sliceVisualizationMode);
+            //todo fix the vertx and fragment shaders
+            float currentSliceF = (float)currentSlice / ((float)dimZ - 1.0f);
+            //std::cout << currentSliceF << std::endl;
+            sliceShader->setFloat("currentSlice", currentSliceF);
 
             glBindVertexArray(sliceVAO);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -1077,10 +1420,11 @@ int main(int argc, char* argv[]) {
 
         // Reset button
         if (ImGui::Button("Reset Camera")) {
-            cameraPos = glm::vec3(dimX/2.0f, dimY/2.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
+            cameraPos = glm::vec3(dimX/4.0f, dimY/4.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
             cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
             yaw = -90.0f;
             pitch = 0.0f;
+            view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         }
 
         // Orbit mode toggle
@@ -1092,7 +1436,7 @@ int main(int argc, char* argv[]) {
 
 
         //TODO select scalar and vector data together
-        if (ImGui::BeginCombo("Dataset", currentScalarFile.c_str()))
+        if (ImGui::BeginCombo("Dataset", currentDataset))
         {
             if (ImGui::Selectable(TOY_SCALAR_PATH))
             {
@@ -1100,7 +1444,9 @@ int main(int argc, char* argv[]) {
                 {
                     currentScalarFile = TOY_SCALAR_PATH;
                     currentVectorFile = TOY_VECTOR_PATH;
-                    needReload = true;
+                    currentDataset = TOY_DATASET;
+                    
+                    switchDataSet();
                 }
             }
 
@@ -1110,7 +1456,9 @@ int main(int argc, char* argv[]) {
                 {
                     currentScalarFile = BRAIN_SCALAR_PATH;
                     currentVectorFile = BRAIN_VECTOR_PATH;
-                    needReload = true;
+                    currentDataset = BRAIN_DATASET;
+                    
+                    switchDataSet();
                 }
             }
             ImGui::EndCombo();
@@ -1119,6 +1467,16 @@ int main(int argc, char* argv[]) {
         // Streamline parameters section
         ImGui::Separator();
         ImGui::Text("Streamline Parameters");
+
+        if (ImGui::SliderFloat("Line width", &lineWidth, 1.0f, 5.0f, "%.2f"))
+        {
+            streamlineRenderer->setLineWidth(lineWidth);
+        }
+
+
+
+
+        /*
 
         // Add specific flags to ensure the values change when the sliders move
         bool paramsChanged = false;
@@ -1158,61 +1516,42 @@ int main(int argc, char* argv[]) {
             ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
                                "Parameters changed - click Regenerate to apply");
         }
-
+        */
         // Streamline display section
         ImGui::Separator();
         ImGui::Text("Streamline Seeding");
 
-        // Seeding method options
-        ImGui::Text("Seeding Method:");
-        bool seedingChanged = false;
+        //// Seeding method options
+        //ImGui::Text("Seeding Method:");
+        //bool seedingChanged = false;
 
-        seedingChanged |= ImGui::RadioButton("Grid Seeding", &seedingMode, GRID_SEEDING);
-        seedingChanged |= ImGui::RadioButton("Unified Brain Seeding", &seedingMode, UNIFIED_BRAIN_SEEDING);
-        seedingChanged |= ImGui::RadioButton("Toy Dataset Seeding", &seedingMode, TOY_DATASET_SEEDING);
+        //seedingChanged |= ImGui::RadioButton("Grid Seeding", &seedingMode, GRID_SEEDING);
+        //seedingChanged |= ImGui::RadioButton("Unified Brain Seeding", &seedingMode, UNIFIED_BRAIN_SEEDING);
+        //seedingChanged |= ImGui::RadioButton("Toy Dataset Seeding", &seedingMode, TOY_DATASET_SEEDING);
 
-        if (seedingChanged) {
-            needReload = true;
-        }
+        //if (seedingChanged) {
+        //    needReload = true;
+        //}
 
         if (ImGui::Button("Regenerate Streamlines")) {
             if (vectorField && streamlineRenderer) {
-                StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
-
-                std::vector<Point3D> seeds;
-                bool isBrainDataset = (currentScalarFile.find("brain") != std::string::npos);
-
-                if (seedingMode == UNIFIED_BRAIN_SEEDING && isBrainDataset) {
-                    seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
-                    if (seeds.size() < 100) {
-                        seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                    }
-                } else if (seedingMode == TOY_DATASET_SEEDING) {
-                    seeds = tracer.generateToyDatasetSeeds(seedDensity);
-                } else {
-                    seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                }
-
-                std::vector<std::vector<Point3D>> newStreamlines = tracer.traceAllStreamlines(seeds);
-                newStreamlines.insert(newStreamlines.end(), manualStreamlines.begin(), manualStreamlines.end());
-                streamlineRenderer->prepareStreamlines(newStreamlines);
+                std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
+                streamlineRenderer->prepareStreamlines(streamlines);
             }
         }
 
         // Slice position control
         int maxSliceIndex = (sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
-        if (ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex)) {
-            updateSlice();
-        }
+        ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
 
-        // Slice opacity control
-        if (ImGui::SliderFloat("Slice Opacity", &sliceAlpha, 0.0f, 1.0f)) {
-            sliceShader->use();
-            sliceShader->setFloat("alpha", sliceAlpha);
-        }
+        //// Slice opacity control
+        //if (ImGui::SliderFloat("Slice Opacity", &sliceAlpha, 0.0f, 1.0f)) {
+        //    sliceShader->use();
+        //    sliceShader->setFloat("alpha", sliceAlpha);
+        //}
 
         // Interactive seeding section
-        ImGui::Separator();
+        /*ImGui::Separator();
         ImGui::Text("Interactive Seeding");
         if (ImGui::Checkbox("Interactive Mode", &interactiveMode)) {
             if (interactiveMode) {
@@ -1230,13 +1569,13 @@ int main(int argc, char* argv[]) {
                 manualStreamlines.clear();
                 needReload = true;
             }
-        }
+        }*/
 
         // Reload button
-        ImGui::Separator();
+        /*ImGui::Separator();
         if (ImGui::Button("Reload Data") || needReload) {
             loadData();
-        }
+        }*/
 
         ImGui::End();
 

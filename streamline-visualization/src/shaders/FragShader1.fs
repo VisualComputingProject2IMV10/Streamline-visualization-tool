@@ -1,7 +1,7 @@
 #version 330 core
 
 // Input from vertex shader
-in vec3 vertColor;
+//in vec3 vertColor;
 in vec3 texCoord;
 
 // Output color
@@ -11,15 +11,28 @@ out vec4 FragColor;
 uniform sampler3D volumeTexture;   // Anatomical data
 uniform sampler3D faTexture;       // Optional FA (fractional anisotropy) data
 
+uniform float currentSlice; //the texture coord of the current slice
+
 // Rendering parameters
-uniform float alpha = 0.9;         // Opacity
-uniform int visualizationMode = 1; // Default visualization mode
+//uniform float alpha = 0.9;         // Opacity
+//uniform int visualizationMode = 1; // Default visualization mode
 
 void main()
 {
-    // Sample intensity from volumetric texture
-    float intensity = texture(volumeTexture, texCoord).r;
+    //FragColor = vec4(1.0f);
+    
+    vec3 newTexCoord = vec3(texCoord.st, currentSlice);
 
+    // Sample intensity from volumetric texture
+    float intensity = texture(volumeTexture, newTexCoord).r;
+    float alpha = texture(volumeTexture, newTexCoord).g; //alpha is encoded as green in the 3d texture
+
+    FragColor = vec4(vec3(intensity), alpha);
+    
+
+
+
+    /*
     vec3 color;
     float outputAlpha;
 
@@ -71,4 +84,5 @@ void main()
 
     // Output final color with alpha
     FragColor = vec4(color, outputAlpha);
+    */
 }

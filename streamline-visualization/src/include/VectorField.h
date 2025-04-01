@@ -56,6 +56,9 @@ public:
      */
     bool isInBounds(float x, float y, float z) const;
 
+
+    bool* getZeroMask(int dimX, int dimY, int dimZ);
+
     // Accessor methods
 
     /**
@@ -98,4 +101,7 @@ private:
     float* data;         ///< Vector data (3 components per voxel)
     short dimX, dimY, dimZ;  ///< Dimensions of the vector field
     float spacingX, spacingY, spacingZ; ///< Voxel spacing
+    bool* zeroMask; ///Mask of zero vectors
+
+    bool* calculateZeroMask();
 };

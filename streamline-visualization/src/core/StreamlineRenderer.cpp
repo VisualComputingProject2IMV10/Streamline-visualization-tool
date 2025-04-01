@@ -416,6 +416,7 @@ void StreamlineRenderer::render() const {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
 
+    // Enable primitive restart to allow drawing the different streamlines from the same elements buffer
     glEnable(GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(0xFFFF);
 

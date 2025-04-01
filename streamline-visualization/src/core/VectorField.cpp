@@ -27,6 +27,8 @@ VectorField::VectorField(const char* filename) {
     this->spacingY = 1.0f;
     this->spacingZ = 1.0f;
 
+    this->zeroMask = calculateZeroMask();
+
     std::cout << "Loaded vector field: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
 }
 
@@ -134,4 +136,44 @@ bool VectorField::isInBounds(float x, float y, float z) const {
     return (x >= 0 && x < dimX-1 &&
             y >= 0 && y < dimY-1 &&
             z >= 0 && z < dimZ-1);
+}
+
+bool* VectorField::getZeroMask(int dimX, int dimY, int dimZ)
+{
+    //check if dimensions match
+    if (this->getDimX() != dimX || this->getDimY() != dimY || this->getDimZ() != dimZ)
+    {
+        throw std::length_error("Dimensions should match up with the vector field");
+    }
+
+    return this->zeroMask;
+}
+
+bool* VectorField::calculateZeroMask()
+{
+    bool* mask = new bool[this->dimX * this->dimY * this->dimZ];
+    int index;
+    float vx, vy, vz;
+    for (size_t x = 0; x < this->dimX; x++)
+    {
+        for (size_t y = 0; y < this->dimY; y++)
+        {
+            for (size_t z = 0; z < this->dimZ; z++)
+            {
+                index = x + y * dimX + z * dimX * dimY; //todo check that this is the correct index
+                this->getVector(x, y, z, vx, vy, vz);
+
+                //if we get a zero vector, we are outside the image
+                if (vx == 0.0f && vy == 0.0f && vz == 0.0f) //todo might get floating point precision errors here, not sure
+                {
+                    mask[index] = false;
+                }
+                else
+                {
+                    mask[index] = true;
+                }
+            }
+        }
+    }
+    return mask;
 }

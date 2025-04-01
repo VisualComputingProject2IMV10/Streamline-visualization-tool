@@ -168,12 +168,6 @@ int readVectorData(const char* filename, float*& data, short& dimX, short& dimY,
         return EXIT_FAILURE;
     }
 
-    std::cout << "Dimensions:" << std::endl;
-    for (short dim : header.dim)
-    {
-        std::cout << dim << std::endl;
-    }
-
     // Extract dimensions
     dimX = header.dim[1];
     dimY = header.dim[2];

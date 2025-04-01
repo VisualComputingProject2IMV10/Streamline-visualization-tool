@@ -18,7 +18,7 @@ StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
     }
 }
 
-std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, float minIntensity, int slice)
+std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, int slice)
 {
     std::vector<Point3D> seeds;
 
@@ -45,7 +45,7 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, f
         {
             float intensity = sampleScalarData(x, y, slice);
 
-            if (intensity >= minIntensity)
+            //if (intensity >= minIntensity)
             {
                 //float vx, vy, vz;
                 //vectorField->getVector(x, y, slice, vx, vy, vz);
@@ -387,8 +387,8 @@ std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
 
     // Validate seed point
     if (!vectorField->isInBounds(seed.x, seed.y, seed.z)) {
-        std::cerr << "Seed point out of bounds: ("
-                  << seed.x << ", " << seed.y << ", " << seed.z << ")" << std::endl;
+        /*std::cerr << "Seed point out of bounds: ("
+                  << seed.x << ", " << seed.y << ", " << seed.z << ")" << std::endl;*/
         return streamline;
     }
 
