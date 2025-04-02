@@ -58,6 +58,55 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int slice)
     return seeds;
 }
 
+std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int slice, glm::vec3 seedLoc, float seedRadius, float density)
+{
+    std::vector<Point3D> seeds;
+    
+    if (!vectorField) {
+        std::cerr << "Error: Vector field is nullptr in generateUnifiedBrainSeeds" << std::endl;
+        return seeds;
+    }
+
+    int dimX = vectorField->getDimX();
+    int dimY = vectorField->getDimY();
+    int dimZ = vectorField->getDimZ();
+
+    if (slice < 0 || slice >= dimZ)
+    {
+        std::cerr << "Error: slice out of bounds" << std::endl;
+        return seeds;
+    }
+
+    std::cout << "Generating mouse seeds" << std::endl;
+
+    if (!vectorField->isInBounds(seedLoc.x, seedLoc.y, slice)) return seeds;
+
+    if (!inZeroMask(glm::vec3(seedLoc.x, seedLoc.y, slice))) return seeds;
+    std::cout << "hello world" << std::endl;
+
+    int maxSeeds = std::roundf(seedRadius) * roundf(density);
+    seeds.reserve(maxSeeds); //pre allocate memory
+
+    for (size_t i = 0; i < maxSeeds; i++)
+    {
+        float r = seedRadius * std::sqrtf((float) std::rand() / RAND_MAX);
+        float theta = (float) std::rand() / RAND_MAX * 2 * std::_Pi_val;
+
+        glm::vec3 seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), seedLoc.y + r * std::sinf(theta), slice);
+
+        if (vectorField->isInBounds(seedPoint.x, seedPoint.y, seedPoint.z))
+        {
+            if (inZeroMask(seedPoint))
+            {
+                seeds.push_back(Point3D(seedPoint.x, seedPoint.y, seedPoint.z));
+            }
+        }
+    }
+    seeds.shrink_to_fit();
+    return seeds;
+
+}
+
 std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds)
 {
     std::vector<std::vector<Point3D>> streamlines;

@@ -18,6 +18,9 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include <string>
 #include <cmath>
 
@@ -101,7 +104,11 @@ int currentSlice = 0;
 
 
 // Interactive seeding
-bool enableMouseSeeding = false;
+glm::vec3 mouseSeedLoc;
+bool useMouseSeeding = false;
+
+bool paramsChanged = false; //for the gui
+
 std::vector<std::vector<Point3D>> manualStreamlines;
 float manualSeedLineWidth = 3.0f;
 
@@ -284,8 +291,15 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         std::vector<Point3D> seeds;
 
         //todo give different options for seeding
-        std::cout << currentSlice << std::endl;
-        seeds = streamlineTracer->generateSliceGridSeeds(currentSlice);
+        if (useMouseSeeding)
+        {
+            float seedRadius = std::max(dimX / 30.0f, dimY / 30.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 30.0f);
+        }
+        else
+        {
+            seeds = streamlineTracer->generateSliceGridSeeds(currentSlice);
+        }
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
         if (!seeds.empty()) 
@@ -304,6 +318,23 @@ std::vector<std::vector<Point3D>> generateStreamlines()
     {
         std::cerr << "Error generating streamlines: " << e.what() << std::endl;
         return streamlines;
+    }
+}
+
+void regenerateStreamLines()
+{
+    paramsChanged = false;
+    if (streamlineTracer)
+    {
+        streamlineTracer->maxAngle = maxAngle;
+        streamlineTracer->maxLength = maxLength;
+        streamlineTracer->maxSteps = maxSteps;
+        streamlineTracer->stepSize = stepSize;
+    }
+
+    if (vectorField && streamlineRenderer) {
+        std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
+        streamlineRenderer->prepareStreamlines(streamlines);
     }
 }
 
@@ -354,8 +385,10 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     lastY = ypos;
 
     //correct the offset
-    xoffset *= (((float)dimX - 2 * xFov) / SCR_WIDTH);
-    yoffset *= (((float)dimY - 2 * xFov) / SCR_HEIGHT);
+    int scrWidth, scrHeight;
+    glfwGetWindowSize(window, &scrWidth, &scrHeight);
+    xoffset *= (((float)dimX - 2 * xFov) / scrWidth);
+    yoffset *= (((float)dimY - 2 * xFov) / scrHeight);
 
     //move the camera since we use an ortho perspective
     cameraPos.x -= xoffset;
@@ -526,10 +559,34 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
 
     (void)mods;  // Unused parameter
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse) return;
 
     // Handle left mouse button
     if (button == GLFW_MOUSE_BUTTON_LEFT) 
     {
+        if (action == GLFW_PRESS)
+        {
+            double xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            int scrWidth, scrHeight;
+            glfwGetWindowSize(window, &scrWidth, &scrHeight);
+
+            //todo may need to change this for the casting to work properly
+            float ndcX = (2.0f * xpos) / scrWidth - 1.0f;
+            float ndcY = 1.0f - (2.0f * ypos) / scrHeight;
+
+            glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
+            glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+            ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
+            glm::vec4 ray_world = glm::inverse(view) * ray_eye;
+            mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+            
+            regenerateStreamLines();
+
+        }
+
+
         //if (action == GLFW_PRESS) {
         //    // For interactive streamline seeding
         //    if (enableMouseSeeding) {
@@ -764,8 +821,6 @@ int main(int argc, char* argv[]) {
 
     switchDataSet();
 
-    bool paramsChanged = false; //for the gui
-
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
@@ -899,111 +954,27 @@ int main(int argc, char* argv[]) {
 
         // Max angle slider
         ImGui::TextWrapped("Max angle between steps (degrees)");
-        if (ImGui::SliderFloat("#maxAngle#", &maxAngleDegrees, 1.0f, 90.0f, "%.1f"))
+        if (ImGui::SliderFloat("##maxAngle", &maxAngleDegrees, 1.0f, 90.0f, "%.1f"))
         {
             maxAngle = maxAngleDegrees * (std::_Pi_val / 180);
             paramsChanged = true;
         }
 
-
-        /*
-
-        // Add specific flags to ensure the values change when the sliders move
-        bool paramsChanged = false;
-
-        // Seed density slider
-        paramsChanged |= ImGui::SliderInt("Seed Density", &seedDensity, 1, 20);
-
-        // Step size slider
-        paramsChanged |= ImGui::SliderFloat("Step Size", &stepSize, 0.1f, 2.0f, "%.3f");
-
-        // Min magnitude slider
-        paramsChanged |= ImGui::SliderFloat("Min Magnitude", &minMagnitude, 0.0001f, 0.1f, "%.4f");
-
-        // Max length slider
-        paramsChanged |= ImGui::SliderFloat("Max Length", &maxLength, 10.0f, 100.0f, "%.1f");
-
-        // Max steps slider
-        paramsChanged |= ImGui::SliderInt("Max Steps", &maxSteps, 100, 2000);
-
-        // Line width slider
-        paramsChanged |= ImGui::SliderFloat("Line Width", &lineWidth, 0.5f, 5.0f, "%.2f");
-
-        // If any parameter was changed, update line width immediately
-        if (paramsChanged) {
-            // Apply line width change immediately
-            glLineWidth(lineWidth);
-            if (streamlineRenderer) {
-                streamlineRenderer->setLineWidth(lineWidth);
-            }
-
-            // Set flag to indicate changes that need reloading
-            needReload = true;
-        }
-
-        // Add a clear indicator that parameters have changed and need reload
-        if (needReload) {
-            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
-                               "Parameters changed - click Regenerate to apply");
-        }
-        */
         // Streamline display section
         ImGui::Separator();
         ImGui::Text("Streamline Seeding");
-
-        //// Seeding method options
-        //ImGui::Text("Seeding Method:");
-        //bool seedingChanged = false;
-
-        //seedingChanged |= ImGui::RadioButton("Grid Seeding", &seedingMode, GRID_SEEDING);
-        //seedingChanged |= ImGui::RadioButton("Unified Brain Seeding", &seedingMode, UNIFIED_BRAIN_SEEDING);
-        //seedingChanged |= ImGui::RadioButton("Toy Dataset Seeding", &seedingMode, TOY_DATASET_SEEDING);
-
-        //if (seedingChanged) {
-        //    needReload = true;
-        //}
-
 
         // Slice position control
         int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
         paramsChanged |= ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
 
+        paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
+
         ImGui::BeginDisabled(!paramsChanged);
         if (ImGui::Button("Regenerate Streamlines")) {
-            paramsChanged = false;
-            if (streamlineTracer)
-            {
-                streamlineTracer->maxAngle = maxAngle;
-                streamlineTracer->maxLength = maxLength;
-                streamlineTracer->maxSteps = maxSteps;
-                streamlineTracer->stepSize = stepSize;
-            }
-            if (vectorField && streamlineRenderer) {
-                std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
-                streamlineRenderer->prepareStreamlines(streamlines);
-            }
+            regenerateStreamLines();
         }
         ImGui::EndDisabled();
-        // Interactive seeding section
-        /*ImGui::Separator();
-        ImGui::Text("Interactive Seeding");
-        if (ImGui::Checkbox("Interactive Mode", &interactiveMode)) {
-            if (interactiveMode) {
-                sliceAlpha = 0.7f;
-                sliceShader->use();
-                sliceShader->setFloat("alpha", sliceAlpha);
-            }
-        }
-
-        if (interactiveMode) {
-            ImGui::Checkbox("Enable Mouse Seeding", &enableMouseSeeding);
-            ImGui::SliderFloat("Seeded Line Width", &manualSeedLineWidth, 1.0f, 5.0f);
-
-            if (ImGui::Button("Clear Seed Streamlines")) {
-                manualStreamlines.clear();
-                needReload = true;
-            }
-        }*/
 
         ImGui::End();
 
