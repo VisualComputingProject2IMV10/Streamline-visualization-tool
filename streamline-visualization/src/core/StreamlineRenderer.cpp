@@ -77,7 +77,7 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
         vertices[currentIndex * 6 + 0] = streamlines[i][streamlines[i].size() - 1].x;
         vertices[currentIndex * 6 + 1] = streamlines[i][streamlines[i].size() - 1].y;
         vertices[currentIndex * 6 + 2] = streamlines[i][streamlines[i].size() - 1].z;
-        vertices[currentIndex * 6 + 3] = r;
+        vertices[currentIndex * 6 + 3] = r; //definitely ignore this compiler warning
         vertices[currentIndex * 6 + 4] = g;
         vertices[currentIndex * 6 + 5] = b;
 
