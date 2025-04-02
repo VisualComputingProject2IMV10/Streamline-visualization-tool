@@ -60,6 +60,11 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
             g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
             b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
+            //normalize
+            float l = std::sqrtf(r * r + g * g + b * b);
+            r /= l;
+            g /= l;
+            b /= l;
             
             //Add point to segment
             vertices[currentIndex * 6 + 0] = streamlines[i][j].x;
