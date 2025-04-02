@@ -25,7 +25,6 @@ void main()
     // Sample intensity from volumetric texture
     float intensity = texture(volumeTexture, newTexCoord).r;
     float alpha = texture(volumeTexture, newTexCoord).g; //alpha is encoded as green in the 3d texture
-
     FragColor = vec4(vec3(intensity), alpha);
     
     //FragColor = vec4(1.0f);
