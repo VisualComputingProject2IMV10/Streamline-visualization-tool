@@ -3,10 +3,6 @@
 #include <iostream>
 #include <random>
 
-#include <glm/vec3.hpp>
-#include <glm/vector_relational.hpp>
-#include <glm/geometric.hpp>
-
 // External function declaration for scalar data sampling (implemented in Source.cpp)
 extern float sampleScalarData(float x, float y, float z);
 
@@ -51,7 +47,7 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, i
     {
         for (int y = 0; y < dimY; y++)
         {
-            if (this->zeroMask[x + y * dimX + slice * dimX * dimZ])
+            if (this->zeroMask[x + y * dimX + slice * dimX * dimY])
             {
                 seeds.push_back(Point3D(x, y, slice));
             }
@@ -70,13 +66,6 @@ std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Poi
 
     for each(Point3D seed in seeds)
     {
-        // Validate seed point
-        if (!vectorField->isInBounds(seed.x, seed.y, seed.z)) {
-            //std::cerr << "Seed point out of bounds: ("
-           //     << seed.x << ", " << seed.y << ", " << seed.z << ")" << std::endl;
-            continue;
-        }
-
         float vx, vy, vz;
         vectorField->getVector(seed.x, seed.y, seed.z, vx, vy, vz);
         vz = 0;
@@ -304,7 +293,7 @@ std::vector<Point3D> StreamlineTracer::generateToyDatasetSeeds(int seedDensity) 
     return seeds;
 }
 
-Point3D StreamlineTracer::eulerIntegrate(const Point3D& pos, float step) {
+Point3D StreamlineTracer::eulerIntegrate1(const Point3D& pos, float step) {
     float vx, vy, vz;
     vectorField->interpolateVector(pos.x, pos.y, pos.z, vx, vy, vz);
 
@@ -400,6 +389,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
     std::vector<Point3D> backwardPath = traceStreamlineDirection(seed, -1);
 
     // Combine paths (remove duplicate seed point)
+    //todo see if this can be optimized
     streamline.clear();
     streamline.insert(streamline.end(), backwardPath.rbegin(), backwardPath.rend());
     streamline.push_back(seed);
@@ -446,7 +436,105 @@ float StreamlineTracer::dot(Point3D v, Point3D u)
     return v.x * u.x + v.y * u.y + v.z * u.z;
 }
 
-std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& seed, int direction) {
+
+
+bool StreamlineTracer::inZeroMask(glm::vec3 v)
+{
+    int x = std::roundf(v.x);
+    int y = std::roundf(v.y);
+    int z = std::roundf(v.z);
+    
+    //first sanity check if the coordinates are even in the domain of the mask
+    if (x < 0 || x >= this->vectorField->getDimX() || y < 0 || y >= this->vectorField->getDimY() || z < 0 || z >= this->vectorField->getDimZ())
+    {
+        return false;
+    }
+
+    //check the value of the zero mask at the point
+    return this->zeroMask[x + y * this->vectorField->getDimX() + z * this->vectorField->getDimX() * this->vectorField->getDimY()];
+}
+
+glm::vec3 StreamlineTracer::eulerIntegrate(glm::vec3 pos, float step)
+{
+    //do first step manually so the loop can check angles more easily
+    glm::vec3 vectorAtPos;
+    vectorField->interpolateVector(pos.x, pos.y, pos.z, vectorAtPos.x, vectorAtPos.y, vectorAtPos.z);
+
+    // Euler integration: p(t+h) = p(t) + h*v(t)
+    glm::vec3 next = pos + step * glm::normalize(vectorAtPos);
+    return next;
+}
+
+std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& seed, int direction)
+{
+    std::vector<Point3D> path;
+    path.reserve(this->maxSteps); //preallocate max memory for the path
+
+    float totalLength = 0.0f;
+
+    glm::vec3 currentPos = glm::vec3(seed.x, seed.y, seed.z); //convert to glm vector for easier algebra
+    
+    //check if the seed is valid
+    if (!inZeroMask(currentPos))
+    {
+        path.shrink_to_fit();
+        return path;
+    }
+
+    glm::vec3 nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+
+    if (inZeroMask(nextPos))
+    {
+        path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
+    }
+    else
+    {
+        path.shrink_to_fit(); //release unused memory
+        return path;
+    }
+
+    glm::vec3 prevPos = currentPos;
+    currentPos = nextPos;
+
+    //calculate the rest of the path
+    for (int step = 1; step < maxSteps && totalLength < maxLength; step++)
+    {   
+        nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+
+        //check if the next point is still in bounds
+        if (!inZeroMask(nextPos))
+        {
+            path.shrink_to_fit(); //release unused memory
+            return path;
+        }
+        
+        glm::vec3 prevDir = glm::normalize(currentPos - prevPos);
+        glm::vec3 newDir = glm::normalize(nextPos - currentPos);
+
+        float cosAngle = glm::dot(prevDir, newDir); //cos(a) = (u * v) / (|u| * |v|)
+        //check if the angle between the vectors is too big
+        if (std::acosf(cosAngle) > this->maxAngle)
+        {
+            path.shrink_to_fit(); //release unused memory
+            return path;
+        }
+        
+        path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
+
+        prevPos = currentPos;
+        currentPos = nextPos;
+
+        totalLength += this->stepSize; //discrete stepsize is used so no need to calculate the length of the actual vector
+    }
+
+    path.shrink_to_fit(); //release unused memory
+    return path;
+}
+
+
+
+
+std::vector<Point3D> StreamlineTracer::traceStreamlineDirection1(const Point3D& seed, int direction) {
     std::vector<Point3D> path;
     Point3D currentPos = seed;
     float totalLength = 0.0f;

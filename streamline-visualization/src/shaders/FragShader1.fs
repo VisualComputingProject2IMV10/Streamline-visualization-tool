@@ -19,7 +19,6 @@ uniform float currentSlice; //the texture coord of the current slice
 
 void main()
 {
-    //FragColor = vec4(1.0f);
     
     vec3 newTexCoord = vec3(texCoord.st, currentSlice);
 
@@ -29,6 +28,7 @@ void main()
 
     FragColor = vec4(vec3(intensity), alpha);
     
+    //FragColor = vec4(1.0f);
 
 
 

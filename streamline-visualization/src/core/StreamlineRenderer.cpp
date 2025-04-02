@@ -59,8 +59,8 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             //get color based on direction
             float r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
             float g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
-            //float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
-            float b = 0.0f;
+            float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
+            //float b = 0.0f;
 
             //Add point to segment
             vertices[currentIndex * 6 + 0] = streamlines[i][j].x;

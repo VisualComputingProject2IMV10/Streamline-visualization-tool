@@ -85,12 +85,15 @@ const char* currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
 int seedDensity = 5;
-float stepSize = 0.5f;
 float minMagnitude = 0.001f;
+
+float stepSize = 0.5f;
 float maxLength = 50.0f;
-int maxSteps = 1000;
+int maxSteps = 1;
+float maxAngle = 0.79f; //about 45 degrees
+
 float lineWidth = 2.0f;
-bool needReload = false;
+//bool needReload = false;
 int sliceAxis = 2;  // 0=X, 1=Y, 2=Z (Z by default)
 float sliceAlpha = 0.5f;  // Default opacity for the slice
 
@@ -229,8 +232,8 @@ void loadCurrentDataFiles()
                 //imagedata[indexImg + 1] = zeroMask[indexMask];
 
                 int imgIndex = 2 * x + 2 * dimX * y + 2 * dimX * dimY * z;
-                imagedata[imgIndex] = globalScalarData[x + y * dimX + z * dimX * dimZ];
-                imagedata[imgIndex + 1] = zeroMask[x + y * dimX + z * dimX * dimZ] ? 1.0f : 0.0f;
+                imagedata[imgIndex] = globalScalarData[x + y * dimX + z * dimX * dimY];
+                imagedata[imgIndex + 1] = zeroMask[x + y * dimX + z * dimX * dimY] ? 1.0f : 0.0f;
             }
         }
     }
@@ -440,7 +443,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
  */
 void loadData() {
     // Reset reload flag at the beginning to prevent recursive calls
-    needReload = false;
+    //needReload = false;
 
     // Log start of data loading
     std::cout << "Starting data loading process..." << std::endl;
@@ -659,7 +662,7 @@ void loadData() {
 
     // Loading is complete
     std::cout << "Data loading complete" << std::endl;
-    needReload = false;
+    //needReload = false;
 }
 
 
@@ -1235,7 +1238,7 @@ void switchDataSet()
     initImgPlane();
 
     //Initialize a streamline tracer and renderer
-    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength); //TODO should this be a pointer?
+    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength, maxAngle); //TODO should this be a pointer?
     streamlineRenderer = new StreamlineRenderer(streamlineShader);
 
     //initialize view matrix

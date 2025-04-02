@@ -4,6 +4,10 @@
 #include <random>
 #include "VectorField.h"
 
+#include <glm/vec3.hpp>
+#include <glm/vector_relational.hpp>
+#include <glm/geometric.hpp>
+
 /**
  * @struct Point3D
  * @brief Simple 3D point structure for streamline representation
@@ -92,8 +96,13 @@ private:
     int maxSteps;              ///< Maximum number of steps per streamline
     float minMagnitude;        ///< Minimum vector magnitude before termination
     float maxLength;           ///< Maximum length of a streamline
-    float maxAngle;            ///< Max angle between vectors in the integration step
+    float maxAngle;         ///< Cosine of the max angle between vectors in the integration step
     bool* zeroMask;            ///< the zero mask of the vector field
+
+    /**
+     * Returns wether the rounded vector is in the zeromask.
+     */
+    bool inZeroMask(glm::vec3 v);
 
     /**
      * @brief Trace a streamline in one direction from a seed point
@@ -102,6 +111,7 @@ private:
      * @return Vector of points representing the directional streamline
      */
     std::vector<Point3D> traceStreamlineDirection(const Point3D& seed, int direction);
+    std::vector<Point3D> traceStreamlineDirection1(const Point3D& seed, int direction);
 
     /**
      * @brief Perform Euler integration step
@@ -109,7 +119,8 @@ private:
      * @param step Step size (can be negative for backward tracing)
      * @return Next position
      */
-    Point3D eulerIntegrate(const Point3D& pos, float step);
+    glm::vec3 eulerIntegrate(glm::vec3 pos, float step);
+    Point3D eulerIntegrate1(const Point3D& pos, float step);
 
     /**
      * @brief Perform 4th-order Runge-Kutta integration step
