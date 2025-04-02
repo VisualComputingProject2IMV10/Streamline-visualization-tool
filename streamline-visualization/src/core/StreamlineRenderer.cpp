@@ -70,7 +70,6 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
             vertices[currentIndex * 6 + 4] = g;
             vertices[currentIndex * 6 + 5] = b;
             
-            //TODO this notation might be a problem
             indices.push_back(currentIndex);
             currentIndex++;
         }
@@ -278,11 +277,6 @@ void StreamlineRenderer::render() const {
     // Draw lines
     glBindVertexArray(VAO);
 
-    // Enable depth test but make lines visible above slice
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-
-    //glDrawArrays(GL_LINES, 0, vertexCount);
     glDrawElements(GL_LINE_STRIP, bufferIndexCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }

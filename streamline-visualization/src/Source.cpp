@@ -733,12 +733,16 @@ int main(int argc, char* argv[]) {
     }
 
     // Configure OpenGL state
-    glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DEPTH_TEST);
     glLineWidth(lineWidth);
+
+    //enable line antialiasing
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); //somehow this also moves the background around or something???
+
     // Enable primitive restart to allow drawing the different streamlines from the same elements buffer
     glEnable(GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(0xFFFF);
