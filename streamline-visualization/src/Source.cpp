@@ -53,6 +53,8 @@ float lastY = 300.0f;
 bool firstMouse = true;
 
 const bool USE_SMOOTH_BACKGROUND = false;
+const float NEAR_CAM_PLANE = 0.01f;
+const float FAR_CAM_PLANE = 1000.0f;
 
 //projection matrices
 glm::mat4 projection;
@@ -218,7 +220,7 @@ void loadCurrentDataFiles()
     cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, 0.0f);
 
     //generate projection matrix
-    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, 0.1f, 1000.0f);
+    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
 }
 
 /**
@@ -658,7 +660,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     if (xFov > ((float) dimX / 2.0f) - 1.0f) xFov = ((float)dimX / 2.0f) - 1.0f;
     if (yFov > ((float) dimY / 2.0f) - 1.0f) yFov = ((float)dimY / 2.0f) - 1.0f;
 
-    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, 0.1f, 1000.0f);
+    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
 
 }
 
