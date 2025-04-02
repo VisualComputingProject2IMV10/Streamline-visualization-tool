@@ -313,6 +313,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
 
         float cosAngle = glm::dot(prevDir, newDir); //cos(a) = (u * v) / (|u| * |v|)
         //check if the angle between the vectors is too big
+        //TODO something might be wrong with the angle constraint
         if (std::acosf(cosAngle) > this->maxAngle)
         {
             path.shrink_to_fit(); //release unused memory

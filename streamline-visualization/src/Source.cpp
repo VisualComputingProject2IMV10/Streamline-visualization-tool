@@ -294,7 +294,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         if (useMouseSeeding)
         {
             float seedRadius = std::max(dimX / 30.0f, dimY / 30.0f);
-            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 30.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 1.0f);
         }
         else
         {
