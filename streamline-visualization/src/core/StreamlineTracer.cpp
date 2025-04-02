@@ -175,7 +175,6 @@ Point3D StreamlineTracer::rk4Integrate(const Point3D& pos, float step) {
 
 std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
     std::vector<Point3D> streamline;
-
     // Validate seed point
     if (!vectorField->isInBounds(seed.x, seed.y, seed.z)) {
         /*std::cerr << "Seed point out of bounds: ("
@@ -232,17 +231,11 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
     float totalLength = 0.0f;
 
     glm::vec3 currentPos = glm::vec3(seed.x, seed.y, seed.z); //convert to glm vector for easier algebra
-    
-    //check if the seed is valid
-    if (!inZeroMask(currentPos))
-    {
-        path.shrink_to_fit();
-        return path;
-    }
 
     glm::vec3 nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
 
-    if (inZeroMask(nextPos))
+    //check if the seed and next position are valid
+    if (inZeroMask(nextPos) || !inZeroMask(currentPos))
     {
         path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
     }
