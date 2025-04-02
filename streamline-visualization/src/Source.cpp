@@ -52,7 +52,9 @@ glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 float yaw = -90.0f;
 float pitch = 0.0f;
-float fov = 45.0f;
+//float xFov = 45.0f;
+float xFov = 0.0f;
+float yFov = 0.0f;
 float lastX = 400.0f;
 float lastY = 300.0f;
 bool firstMouse = true;
@@ -66,7 +68,7 @@ float* globalScalarData = nullptr;
 int scalarDimX = 0, scalarDimY = 0, scalarDimZ = 0;
 
 const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_HEIGHT = 800;
 
 // Timing
 float deltaTime = 0.0f;
@@ -258,8 +260,15 @@ void loadCurrentDataFiles()
     std::cout << "Generated 3d texture" << std::endl;
 
     // Initialize camera position based on data dimensions
-    cameraPos = glm::vec3(dimX / 4.0f, dimY / 4.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
+    cameraPos = glm::vec3(0.0f, 0.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
+    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, 0.0f);
+    //cameraPos = glm::vec3(dimX / 2.0f, dimY / 2.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
     currentSlice = dimZ / 2;
+
+    //generate projection matrix
+    projection = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(xFov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, 0.1f, 100.0f);
 }
 
 /**
@@ -269,14 +278,24 @@ void initImgPlane()
 {
     //float sliceCoord = (float)currentSlice / (float)dimZ;
 
+    //float vertexData[] =
+    //{
+    //    //position               //texture coord: the slice is selected in the vertex shader
+    //     0.0f, 0.0f, currentSlice,       0.0f, 0.0f, 0.5f, //bottom left
+    //     dimX, 0.0f, currentSlice,       1.0f, 0.0f, 0.5f, //bottom right
+    //     0.0f, dimY, currentSlice,       0.0f, 1.0f, 0.5f, //top left
+    //     dimX, dimY, currentSlice,       1.0f, 1.0f, 0.5f  //top right
+    //};
+    //todo: move verticies so streamlines are centered
     float vertexData[] =
     {
         //position               //texture coord: the slice is selected in the vertex shader
-         0.0f, 0.0f, 0.0f,       0.0f, 0.0f, 0.5f, //bottom left
-         dimX, 0.0f, 0.0f,       1.0f, 0.0f, 0.5f, //bottom right
-         0.0f, dimY, 0.0f,       0.0f, 1.0f, 0.5f, //top left
-         dimX, dimY, 0.0f,       1.0f, 1.0f, 0.5f  //top right
+         0.0f-0.5f, 0.0f-0.5f, -10.0f,       0.0f, 0.0f, 0.5f, //bottom left
+         dimX-0.5f, 0.0f-0.5f, -10.0f,       1.0f, 0.0f, 0.5f, //bottom right
+         0.0f-0.5f, dimY-0.5f, -10.0f,       0.0f, 1.0f, 0.5f, //top left
+         dimX-0.5f, dimY-0.5f, -10.0f,       1.0f, 1.0f, 0.5f  //top right
     };
+
 
     unsigned int vertexIndices[] =
     {
@@ -863,27 +882,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    // Apply sensitivity adjustment
-    const float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
+    //correct the offset
+    xoffset *= (((float)dimX - 2 * xFov) / SCR_WIDTH);
+    yoffset *= (((float)dimY - 2 * xFov) / SCR_HEIGHT);
+
+    cameraPos.x -= xoffset;
+    cameraPos.y -= yoffset;
 
     // Update camera angles
-    yaw += xoffset;
-    pitch += yoffset;
+    //yaw += xoffset;
+    //pitch += yoffset;
 
-    // Clamp pitch to prevent flipping
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
+    //// Clamp pitch to prevent flipping
+    //if (pitch > 89.0f)
+    //    pitch = 89.0f;
+    //if (pitch < -89.0f)
+    //    pitch = -89.0f;
 
-    // Calculate new camera direction
-    glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(direction);
+    //// Calculate new camera direction
+    //glm::vec3 direction;
+    //direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    //direction.y = sin(glm::radians(pitch));
+    //direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    //cameraFront = glm::normalize(direction);
 
     //update view matrix
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -1095,7 +1116,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 glm::vec4 clipPosFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);   // Far plane
 
                 // Convert to world space
-                glm::mat4 projection = glm::perspective(glm::radians(fov), (float)width / height, 0.1f, 1000.0f);
+                glm::mat4 projection = glm::perspective(glm::radians(xFov), (float)width / height, 0.1f, 1000.0f);
                 glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
                 glm::mat4 invProjView = glm::inverse(projection * view);
 
@@ -1210,18 +1231,25 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     (void)xoffset;  // Unused parameter
 
     // Adjust field of view (zoom) based on scroll wheel
-    fov -= (float)yoffset * 2.0f;
+    xFov -= (float)yoffset * 2.0f;
+    yFov -= (float)yoffset * 2.0f;
 
-    // Clamp FOV to reasonable limits
-    if (fov < 1.0f)
-        fov = 1.0f;  // Maximum zoom level
-    if (fov > 45.0f)
-        fov = 45.0f; // Minimum zoom level
+    // Clamp xFov to reasonable limits
+    //if (xFov < 1.0f)
+    //    xFov = 1.0f;  // Maximum zoom level
+    //if (xFov > 45.0f)
+    //    xFov = 45.0f; // Minimum zoom level
 
     //update projection matrix
-    projection = glm::perspective(glm::radians(fov),
+    projection = glm::perspective(glm::radians(xFov),
         (float)SCR_WIDTH / (float)SCR_HEIGHT,
         0.1f, 1000.0f);
+    //if (xFov < 0.0f) xFov = 0.0f;
+    if (xFov > ((float) dimX / 2.0f) - 1.0f) xFov = ((float)dimX / 2.0f) - 1.0f;
+    if (yFov > ((float) dimY / 2.0f) - 1.0f) yFov = ((float)dimY / 2.0f) - 1.0f;
+
+    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, 0.1f, 100.0f);
+
 }
 
 /**
@@ -1343,9 +1371,6 @@ int main(int argc, char* argv[]) {
     ////generate the initial streamlines
     //std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
     //streamlineRenderer->prepareStreamlines(streamlines);
-
-    //generate projection matrix
-    projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
