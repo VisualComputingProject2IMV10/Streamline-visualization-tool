@@ -948,7 +948,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Slice position control
-        int maxSliceIndex = dimZ;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
+        int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
         ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
 
         // Interactive seeding section
