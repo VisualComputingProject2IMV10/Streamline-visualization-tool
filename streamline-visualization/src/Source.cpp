@@ -77,13 +77,13 @@ const char* currentScalarFile = TOY_SCALAR_PATH;
 const char* currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
-int seedDensity = 5;
-float minMagnitude = 0.001f;
+//int seedDensity = 5;
 
 float stepSize = 0.5f;
 float maxLength = 50.0f;
 int maxSteps = 1;
-float maxAngle = 0.79f; //about 45 degrees
+float maxAngleDegrees = 45;
+float maxAngle = maxAngleDegrees * (std::_Pi_val / 180); //about 45 degrees
 
 float lineWidth = 2.0f;
 
@@ -285,7 +285,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
 
         //todo give different options for seeding
         std::cout << currentSlice << std::endl;
-        seeds = streamlineTracer->generateSliceGridSeeds(seedDensity, currentSlice);
+        seeds = streamlineTracer->generateSliceGridSeeds(currentSlice);
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
         if (!seeds.empty()) 
@@ -394,53 +394,53 @@ void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
  * @param z Z coordinate of the seed point
  */
 void seedStreamlinesAtPoint(float x, float y, float z) {
-    // Check if vector field exists
-    if (!vectorField) return;
+    //// Check if vector field exists
+    //if (!vectorField) return;
 
-    // Clamp coordinates to valid range
-    x = std::max(0.0f, std::min(x, (float)dimX - 1.0f));
-    y = std::max(0.0f, std::min(y, (float)dimY - 1.0f));
-    z = std::max(0.0f, std::min(z, (float)dimZ - 1.0f));
+    //// Clamp coordinates to valid range
+    //x = std::max(0.0f, std::min(x, (float)dimX - 1.0f));
+    //y = std::max(0.0f, std::min(y, (float)dimY - 1.0f));
+    //z = std::max(0.0f, std::min(z, (float)dimZ - 1.0f));
 
-    std::cout << "Seeding streamline at (" << x << ", " << y << ", " << z << ")" << std::endl;
+    //std::cout << "Seeding streamline at (" << x << ", " << y << ", " << z << ")" << std::endl;
 
-    // Create a seed point
-    Point3D seed(x, y, z);
+    //// Create a seed point
+    //Point3D seed(x, y, z);
 
-    // Create a streamline tracer with current parameters
-    StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
+    //// Create a streamline tracer with current parameters
+    //StreamlineTracer tracer(vectorField, stepSize, maxSteps, maxLength);
 
-    // Trace streamline in both directions from the seed
-    std::vector<Point3D> newStreamline = tracer.traceStreamline(seed);
+    //// Trace streamline in both directions from the seed
+    //std::vector<Point3D> newStreamline = tracer.traceStreamline(seed);
 
-    // Only add if streamline has sufficient points
-    if (newStreamline.size() > 2) {
-        // Store in manual streamlines collection for persistence
-        manualStreamlines.push_back(newStreamline);
+    //// Only add if streamline has sufficient points
+    //if (newStreamline.size() > 2) {
+    //    // Store in manual streamlines collection for persistence
+    //    manualStreamlines.push_back(newStreamline);
 
-        // Prepare container for just this new streamline
-        std::vector<std::vector<Point3D>> singleStreamline;
-        singleStreamline.push_back(newStreamline);
+    //    // Prepare container for just this new streamline
+    //    std::vector<std::vector<Point3D>> singleStreamline;
+    //    singleStreamline.push_back(newStreamline);
 
-        // Add to existing renderer for immediate visualization
-        if (streamlineRenderer) {
-            // Save current line width
-            float oldWidth = lineWidth;
+    //    // Add to existing renderer for immediate visualization
+    //    if (streamlineRenderer) {
+    //        // Save current line width
+    //        float oldWidth = lineWidth;
 
-            // Use special width for manually seeded streamlines
-            glLineWidth(manualSeedLineWidth);
+    //        // Use special width for manually seeded streamlines
+    //        glLineWidth(manualSeedLineWidth);
 
-            // Add to renderer
-            streamlineRenderer->addStreamlines(singleStreamline);
+    //        // Add to renderer
+    //        streamlineRenderer->addStreamlines(singleStreamline);
 
-            // Restore original line width
-            glLineWidth(oldWidth);
-        }
+    //        // Restore original line width
+    //        glLineWidth(oldWidth);
+    //    }
 
-        std::cout << "Added a new streamline with " << newStreamline.size() << " points" << std::endl;
-    } else {
-        std::cout << "Generated streamline was too short (" << newStreamline.size() << " points)" << std::endl;
-    }
+    //    std::cout << "Added a new streamline with " << newStreamline.size() << " points" << std::endl;
+    //} else {
+    //    std::cout << "Generated streamline was too short (" << newStreamline.size() << " points)" << std::endl;
+    //}
 }
 
 /**
@@ -678,7 +678,7 @@ void switchDataSet()
     initImgPlane();
 
     //Initialize a streamline tracer and renderer
-    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength, maxAngle); //TODO should this be a pointer?
+    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, maxLength, maxAngle); //TODO should this be a pointer?
     streamlineRenderer = new StreamlineRenderer(streamlineShader);
 
     //initialize view matrix
@@ -763,6 +763,8 @@ int main(int argc, char* argv[]) {
     ImGui::StyleColorsDark();
 
     switchDataSet();
+
+    bool paramsChanged = false; //for the gui
 
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
@@ -876,13 +878,32 @@ int main(int argc, char* argv[]) {
         ImGui::Separator();
         ImGui::Text("Streamline Parameters");
 
-        if (ImGui::SliderFloat("Line width", &lineWidth, 1.0f, 5.0f, "%.2f"))
+        ImGui::TextWrapped("Line width");
+        if (ImGui::SliderFloat("##lineWidth", &lineWidth, 1.0f, 5.0f, "%.2f"))
         {
             //todo make linewidth relative to zoom level.
             streamlineRenderer->setLineWidth(lineWidth);
         }
 
+        // Step size slider
+        ImGui::TextWrapped("Step size");
+        paramsChanged |= ImGui::SliderFloat("##stepSize", &stepSize, 0.1f, 2.0f, "%.3f");
+        
+        // Max length slider
+        ImGui::TextWrapped("Max streamline length");
+        paramsChanged |= ImGui::SliderFloat("##maxLength", &maxLength, 1.0f, 100.0f, "%.1f");
+        
+        // Max steps slider
+        ImGui::TextWrapped("Max integration steps");
+        paramsChanged |= ImGui::SliderInt("##maxSteps", &maxSteps, 1, 2000);
 
+        // Max angle slider
+        ImGui::TextWrapped("Max angle between steps (degrees)");
+        if (ImGui::SliderFloat("#maxAngle#", &maxAngleDegrees, 1.0f, 90.0f, "%.1f"))
+        {
+            maxAngle = maxAngleDegrees * (std::_Pi_val / 180);
+            paramsChanged = true;
+        }
 
 
         /*
@@ -942,17 +963,27 @@ int main(int argc, char* argv[]) {
         //    needReload = true;
         //}
 
+
+        // Slice position control
+        int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
+        paramsChanged |= ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
+
+        ImGui::BeginDisabled(!paramsChanged);
         if (ImGui::Button("Regenerate Streamlines")) {
+            paramsChanged = false;
+            if (streamlineTracer)
+            {
+                streamlineTracer->maxAngle = maxAngle;
+                streamlineTracer->maxLength = maxLength;
+                streamlineTracer->maxSteps = maxSteps;
+                streamlineTracer->stepSize = stepSize;
+            }
             if (vectorField && streamlineRenderer) {
                 std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
                 streamlineRenderer->prepareStreamlines(streamlines);
             }
         }
-
-        // Slice position control
-        int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
-        ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
-
+        ImGui::EndDisabled();
         // Interactive seeding section
         /*ImGui::Separator();
         ImGui::Text("Interactive Seeding");

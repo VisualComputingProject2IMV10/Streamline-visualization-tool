@@ -37,9 +37,7 @@ public:
      * @param minMag Minimum vector magnitude before termination
      * @param maxLen Maximum length of a streamline
      */
-    StreamlineTracer(VectorField* field, float step = 0.5f,
-                    int steps = 2000, float minMag = 0.01f,
-                    float maxLen = 100.0f, float maxAngle = 0.01f);
+    StreamlineTracer(VectorField* field, float step = 0.5f, int steps = 2000, float maxLen = 100.0f, float maxAngle = 0.01f);
 
     /**
      * @brief Trace a single streamline from a seed point
@@ -57,17 +55,17 @@ public:
      */
     std::vector<std::vector<Point3D>> traceAllStreamlines(const std::vector<Point3D>& seeds);
 
-    std::vector<Point3D> generateSliceGridSeeds(int seedDensity, int slice);
+    std::vector<Point3D> generateSliceGridSeeds(int slice);
 
     std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds);
 
-private:
-    VectorField* vectorField;  ///< Reference to the vector field
     float stepSize;            ///< Step size for numerical integration
     int maxSteps;              ///< Maximum number of steps per streamline
-    float minMagnitude;        ///< Minimum vector magnitude before termination
     float maxLength;           ///< Maximum length of a streamline
     float maxAngle;         ///< Cosine of the max angle between vectors in the integration step
+
+private:
+    VectorField* vectorField;  ///< Reference to the vector field
     bool* zeroMask;            ///< the zero mask of the vector field
 
     /**

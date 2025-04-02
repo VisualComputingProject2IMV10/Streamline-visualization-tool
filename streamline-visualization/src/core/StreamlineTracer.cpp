@@ -6,10 +6,9 @@
 // External function declaration for scalar data sampling (implemented in Source.cpp)
 extern float sampleScalarData(float x, float y, float z);
 
-StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
-                                 float minMag, float maxLen, float maxAngle)
+StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps, float maxLen, float maxAngle)
     : vectorField(field), stepSize(step), maxSteps(steps),
-      minMagnitude(minMag), maxLength(maxLen), maxAngle(maxAngle) {
+      maxLength(maxLen), maxAngle(maxAngle) {
     // Validate input parameters
     if (!field) {
         std::cerr << "Error: Null vector field provided to StreamlineTracer" << std::endl;
@@ -19,7 +18,7 @@ StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps,
     this->zeroMask = field->getZeroMask(field->getDimX(), field->getDimY(), field->getDimZ()); //for quicker access
 }
 
-std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int seedDensity, int slice)
+std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int slice)
 {
     std::vector<Point3D> seeds;
 
