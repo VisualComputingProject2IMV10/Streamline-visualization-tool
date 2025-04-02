@@ -217,7 +217,7 @@ void loadCurrentDataFiles()
     currentSlice = dimZ / 2;
 
     // Initialize camera position based on data dimensions
-    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, 0.0f);
+    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
 
     //generate projection matrix
     projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
@@ -231,10 +231,10 @@ void initImgPlane()
     float vertexData[] =
     {
         //position                       //texture coord: the slice is selected in the vertex shader
-         -0.5f,     -0.5f,     -dimZ,    0.0f, 0.0f, 0.5f, //bottom left
-         dimX-0.5f, -0.5f,     -dimZ,    1.0f, 0.0f, 0.5f, //bottom right
-         -0.5f,     dimY-0.5f, -dimZ,    0.0f, 1.0f, 0.5f, //top left
-         dimX-0.5f, dimY-0.5f, -dimZ,    1.0f, 1.0f, 0.5f  //top right
+         -0.5f,     -0.5f,     -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
+         dimX-0.5f, -0.5f,     -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
+         -0.5f,     dimY-0.5f, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
+         dimX-0.5f, dimY-0.5f, -2.0f * dimZ,    1.0f, 1.0f, 0.5f  //top right
     };
 
     unsigned int vertexIndices[] =
