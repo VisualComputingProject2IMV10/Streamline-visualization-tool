@@ -92,207 +92,6 @@ std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Poi
     return streamlines;
 }
 
-std::vector<Point3D> StreamlineTracer::generateUnifiedBrainSeeds(int seedDensity, float minIntensity) {
-    std::vector<Point3D> seeds;
-
-    if (!vectorField) {
-        std::cerr << "Error: Vector field is nullptr in generateUnifiedBrainSeeds" << std::endl;
-        return seeds;
-    }
-
-    int dimX = vectorField->getDimX();
-    int dimY = vectorField->getDimY();
-    int dimZ = vectorField->getDimZ();
-
-    // Use a lower intensity threshold to capture more of the brain structure
-    float adjustedIntensity = 0.08f;
-
-    // Use higher seed density multiplier for better visualization
-    int seedMultiplier = seedDensity * 1000;
-
-    std::cout << "Generating enhanced unified brain seeds with density " << seedDensity << std::endl;
-
-    // First create a map of all viable seed points
-    std::vector<Point3D> viablePoints;
-
-    // Scan the entire volume at a high resolution
-    int stride = std::max(1, static_cast<int>(2.0f / seedDensity));
-
-    std::cout << "Using stride: " << stride << " to find viable seed points" << std::endl;
-
-    // First pass: find all viable seed points based on intensity and vector magnitude
-    for (int x = 0; x < dimX; x += stride) {
-        for (int y = 0; y < dimY; y += stride) {
-            for (int z = 0; z < dimZ; z += stride) {
-                float intensity = sampleScalarData(x, y, z);
-
-                if (intensity > adjustedIntensity) {
-                    float vx, vy, vz;
-                    vectorField->interpolateVector(x, y, z, vx, vy, vz);
-
-                    float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-                    if (magnitude > minMagnitude * 0.5f) {  // Lower threshold for inclusion
-                        viablePoints.push_back(Point3D(x, y, z));
-                    }
-                }
-            }
-        }
-    }
-
-    std::cout << "Found " << viablePoints.size() << " viable seed points" << std::endl;
-
-    // If no viable points found, try again with much lower threshold
-    if (viablePoints.size() < 10) {
-        adjustedIntensity = 0.01f;
-        for (int x = 0; x < dimX; x += stride) {
-            for (int y = 0; y < dimY; y += stride) {
-                for (int z = 0; z < dimZ; z += stride) {
-                    float intensity = sampleScalarData(x, y, z);
-
-                    if (intensity > adjustedIntensity) {
-                        float vx, vy, vz;
-                        vectorField->interpolateVector(x, y, z, vx, vy, vz);
-
-                        float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-                        if (magnitude > minMagnitude * 0.3f) {
-                            viablePoints.push_back(Point3D(x, y, z));
-                        }
-                    }
-                }
-            }
-        }
-        std::cout << "Retry with lower threshold found " << viablePoints.size() << " viable points" << std::endl;
-    }
-
-    // Select seed points from viable points
-    if (!viablePoints.empty()) {
-        // Use high-quality random number generator
-        std::random_device rd;
-        std::mt19937 gen(rd());
-
-        // Determine number of seeds based on density
-        int numSeeds = std::min(static_cast<int>(viablePoints.size()), seedMultiplier);
-
-        if (numSeeds == viablePoints.size()) {
-            // Use all viable points
-            seeds = viablePoints;
-        } else {
-            // Randomly sample points
-            std::shuffle(viablePoints.begin(), viablePoints.end(), gen);
-            seeds.assign(viablePoints.begin(), viablePoints.begin() + numSeeds);
-        }
-
-        // Add jittered duplicates of high-intensity regions for more detail
-        std::vector<Point3D> extraSeeds;
-        std::uniform_real_distribution<float> jitter(-1.0f, 1.0f);
-
-        for (const auto& seed : seeds) {
-            // Sample intensity at this point
-            float intensity = sampleScalarData(seed.x, seed.y, seed.z);
-
-            // Add extra seeds around high-intensity points
-            if (intensity > 0.25f) {
-                for (int i = 0; i < 3; i++) {
-                    float jx = seed.x + jitter(gen);
-                    float jy = seed.y + jitter(gen);
-                    float jz = seed.z + jitter(gen);
-
-                    // Ensure in bounds
-                    jx = std::max(0.0f, std::min(jx, static_cast<float>(dimX - 1)));
-                    jy = std::max(0.0f, std::min(jy, static_cast<float>(dimY - 1)));
-                    jz = std::max(0.0f, std::min(jz, static_cast<float>(dimZ - 1)));
-
-                    extraSeeds.push_back(Point3D(jx, jy, jz));
-                }
-            }
-        }
-
-        // Add the extra seeds
-        seeds.insert(seeds.end(), extraSeeds.begin(), extraSeeds.end());
-    }
-
-    std::cout << "Generated " << seeds.size() << " enhanced unified brain seed points" << std::endl;
-    return seeds;
-}
-
-std::vector<Point3D> StreamlineTracer::generateToyDatasetSeeds(int seedDensity) {
-    std::vector<Point3D> seeds;
-
-    int dimX = vectorField->getDimX();
-    int dimY = vectorField->getDimY();
-    int dimZ = vectorField->getDimZ();
-
-    // Toy datasets need denser seeding along the actual shapes
-    // Use a fine-grained scan with a low intensity threshold
-    float intensityThreshold = 0.05f;
-    int stride = 1;  // Check every voxel
-
-    std::cout << "Generating detailed toy dataset seeds" << std::endl;
-
-    // First identify the shape's central voxels
-    std::vector<Point3D> shapeVoxels;
-    for (int x = 0; x < dimX; x++) {
-        for (int y = 0; y < dimY; y++) {
-            for (int z = 0; z < dimZ; z++) {
-                float intensity = sampleScalarData(x, y, z);
-                if (intensity > intensityThreshold) {
-                    shapeVoxels.push_back(Point3D(x, y, z));
-                }
-            }
-        }
-    }
-
-    std::cout << "Found " << shapeVoxels.size() << " shape voxels" << std::endl;
-
-    // If we didn't find many voxels, try with an even lower threshold
-    if (shapeVoxels.size() < 1000) {
-        shapeVoxels.clear();
-        intensityThreshold = 0.01f;
-
-        for (int x = 0; x < dimX; x++) {
-            for (int y = 0; y < dimY; y++) {
-                for (int z = 0; z < dimZ; z++) {
-                    float intensity = sampleScalarData(x, y, z);
-                    if (intensity > intensityThreshold) {
-                        shapeVoxels.push_back(Point3D(x, y, z));
-                    }
-                }
-            }
-        }
-
-        std::cout << "Retry with lower threshold found " << shapeVoxels.size() << " shape voxels" << std::endl;
-    }
-
-    // Create seeds using shape voxels with meaningful vector directions
-    for (const auto& voxel : shapeVoxels) {
-        float vx, vy, vz;
-        vectorField->getVector(voxel.x, voxel.y, voxel.z, vx, vy, vz);
-
-        // Only add seeds where there's a meaningful vector direction
-        float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-        if (magnitude > minMagnitude * 0.1f) {  // Use lower threshold
-            seeds.push_back(voxel);
-        }
-    }
-
-    // Apply additional sampling for TOY dataset if we have too many seeds
-    if (seeds.size() > 10000) {
-        // Randomly sample seeds
-        std::random_device rd;
-        std::mt19937 g(rd());
-        std::shuffle(seeds.begin(), seeds.end(), g);
-
-        // Limit to a reasonable number based on seed density
-        int maxSeeds = seedDensity * 1000;
-        if (seeds.size() > maxSeeds) {
-            seeds.resize(maxSeeds);
-        }
-    }
-
-    std::cout << "Generated " << seeds.size() << " toy dataset seed points" << std::endl;
-    return seeds;
-}
-
 Point3D StreamlineTracer::eulerIntegrate1(const Point3D& pos, float step) {
     float vx, vy, vz;
     vectorField->interpolateVector(pos.x, pos.y, pos.z, vx, vy, vz);
@@ -398,46 +197,6 @@ std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
     return streamline;
 }
 
-Point3D StreamlineTracer::vecDiff(Point3D v, Point3D u)
-{
-    Point3D result;
-    result.x = v.x - u.x;
-    result.y = v.y - u.y;
-    result.z = v.z - u.z;
-    return result;
-}
-
-Point3D StreamlineTracer::normalize(Point3D v)
-{
-    Point3D result;
-    float length = std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-    if (length > 0)
-    {
-        result.x = v.x / length;
-        result.y = v.y / length;
-        result.z = v.z / length;
-    }
-    return result;
-}
-
-void StreamlineTracer::normalizeInPlace(Point3D v)
-{
-    float length = std::sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
-    if (length > 0)
-    {
-        v.x /= length;
-        v.y /= length;
-        v.z /= length;
-    }
-}
-
-float StreamlineTracer::dot(Point3D v, Point3D u)
-{
-    return v.x * u.x + v.y * u.y + v.z * u.z;
-}
-
-
-
 bool StreamlineTracer::inZeroMask(glm::vec3 v)
 {
     int x = std::roundf(v.x);
@@ -534,92 +293,60 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
 
 
 
-std::vector<Point3D> StreamlineTracer::traceStreamlineDirection1(const Point3D& seed, int direction) {
-    std::vector<Point3D> path;
-    Point3D currentPos = seed;
-    float totalLength = 0.0f;
-
-    for (int step = 0; step < maxSteps && totalLength < maxLength; step++) {
-        // Get interpolated vector at current position
-        float vx, vy, vz;
-        vectorField->interpolateVector(currentPos.x, currentPos.y, currentPos.z, vx, vy, vz);
-
-        // Check vector magnitude for termination
-        float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-        if (magnitude < minMagnitude) break;
-
-        // Use RK4 integration for better accuracy
-        Point3D nextPos = rk4Integrate(currentPos, direction * stepSize);
-
-        // Strict bounds checking
-        if (!vectorField->isInBounds(nextPos.x, nextPos.y, nextPos.z)) break;
-
-        //check if the angle is not too much
-        //Point3D prevPos = path[path.size()];
-        Point3D prevPos;
-        if (!path.empty()) prevPos = path.back();
-
-        //std::cout << "Prevpos: " << prevPos.x << " " << prevPos.y << " " << prevPos.z << std::endl;
-
-        Point3D prevVec = normalize(vecDiff(currentPos, prevPos));
-        Point3D nextVec = normalize(vecDiff(nextPos, currentPos));//TODO this is probably inefficient because we already have the vector somewhere
-        
-        if (dot(prevVec, nextVec) > std::cosf(maxAngle)) //TODO can optimize this away by putting the acos somewhere else
-        {
-            printf("greater than angle\n");
-            break;
-        }
-
-        // Calculate step distance
-        float stepDist = std::sqrt(
-            (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
-            (nextPos.y - currentPos.y) * (nextPos.y - currentPos.y) +
-            (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z)
-        );
-
-        // Add to path and update tracking
-        path.push_back(nextPos);
-        currentPos = nextPos;
-        totalLength += stepDist;
-
-        // Prevent infinite loops with extreme step count
-        if (path.size() > maxSteps) break;
-    }
-
-    return path;
-}
-
-std::vector<Point3D> StreamlineTracer::generateSeedGrid(int densityX, int densityY, int densityZ) {
-    std::vector<Point3D> seeds;
-    seeds.reserve(densityX * densityY * densityZ);  // Pre-allocate memory
-
-    // Use vector field dimensions
-    int fieldDimX = vectorField->getDimX();
-    int fieldDimY = vectorField->getDimY();
-    int fieldDimZ = vectorField->getDimZ();
-
-    // Use more efficient striding
-    int strideX = std::max(1, fieldDimX / (densityX * 2));
-    int strideY = std::max(1, fieldDimY / (densityY * 2));
-    int strideZ = std::max(1, fieldDimZ / (densityZ * 2));
-
-    for (int x = strideX; x < fieldDimX; x += strideX) {
-        for (int y = strideY; y < fieldDimY; y += strideY) {
-            for (int z = strideZ; z < fieldDimZ; z += strideZ) {
-                // Quick magnitude check instead of full vector interpolation
-                float vx, vy, vz;
-                vectorField->getVector(x, y, z, vx, vy, vz);
-
-                float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-                if (magnitude > minMagnitude) {
-                    seeds.emplace_back(x, y, z);
-                }
-            }
-        }
-    }
-
-    return seeds;
-}
+//std::vector<Point3D> StreamlineTracer::traceStreamlineDirection1(const Point3D& seed, int direction) {
+//    std::vector<Point3D> path;
+//    Point3D currentPos = seed;
+//    float totalLength = 0.0f;
+//
+//    for (int step = 0; step < maxSteps && totalLength < maxLength; step++) {
+//        // Get interpolated vector at current position
+//        float vx, vy, vz;
+//        vectorField->interpolateVector(currentPos.x, currentPos.y, currentPos.z, vx, vy, vz);
+//
+//        // Check vector magnitude for termination
+//        float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
+//        if (magnitude < minMagnitude) break;
+//
+//        // Use RK4 integration for better accuracy
+//        Point3D nextPos = rk4Integrate(currentPos, direction * stepSize);
+//
+//        // Strict bounds checking
+//        if (!vectorField->isInBounds(nextPos.x, nextPos.y, nextPos.z)) break;
+//
+//        //check if the angle is not too much
+//        //Point3D prevPos = path[path.size()];
+//        Point3D prevPos;
+//        if (!path.empty()) prevPos = path.back();
+//
+//        //std::cout << "Prevpos: " << prevPos.x << " " << prevPos.y << " " << prevPos.z << std::endl;
+//
+//        Point3D prevVec = normalize(vecDiff(currentPos, prevPos));
+//        Point3D nextVec = normalize(vecDiff(nextPos, currentPos));//TODO this is probably inefficient because we already have the vector somewhere
+//        
+//        if (dot(prevVec, nextVec) > std::cosf(maxAngle)) //TODO can optimize this away by putting the acos somewhere else
+//        {
+//            printf("greater than angle\n");
+//            break;
+//        }
+//
+//        // Calculate step distance
+//        float stepDist = std::sqrt(
+//            (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
+//            (nextPos.y - currentPos.y) * (nextPos.y - currentPos.y) +
+//            (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z)
+//        );
+//
+//        // Add to path and update tracking
+//        path.push_back(nextPos);
+//        currentPos = nextPos;
+//        totalLength += stepDist;
+//
+//        // Prevent infinite loops with extreme step count
+//        if (path.size() > maxSteps) break;
+//    }
+//
+//    return path;
+//}
 
 std::vector<std::vector<Point3D>> StreamlineTracer::traceAllStreamlines(const std::vector<Point3D>& seeds) {
     std::vector<std::vector<Point3D>> streamlines;

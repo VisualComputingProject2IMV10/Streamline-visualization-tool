@@ -10,7 +10,6 @@
 #endif
 
 #include "extra/glad.h"
-#include <iostream>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -19,12 +18,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
-
 #include <string>
 #include <cmath>
-#include <algorithm>
-#include <filesystem>
-#include <cstdlib>
 
 #include "include/Shader.h"
 #include "include/DataReader.h"
@@ -50,14 +45,14 @@ const char* TOY_DATASET = "Toy dataset";
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-float yaw = -90.0f;
-float pitch = 0.0f;
-//float xFov = 45.0f;
+
 float xFov = 0.0f;
 float yFov = 0.0f;
 float lastX = 400.0f;
 float lastY = 300.0f;
 bool firstMouse = true;
+
+const bool USE_SMOOTH_BACKGROUND = false;
 
 //projection matrices
 glm::mat4 projection;
@@ -74,14 +69,8 @@ const unsigned int SCR_HEIGHT = 800;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// Visualization settings
-int sliceVisualizationMode = 1;  // Default to anatomical view
-bool showVectorFieldOverlay = false;
-bool firstLoad = true;
-
+//initial settings
 const char* currentDataset = TOY_DATASET;
-
-//todo refactor below code
 const char* currentScalarFile = TOY_SCALAR_PATH;
 const char* currentVectorFile = TOY_VECTOR_PATH;
 
@@ -95,9 +84,6 @@ int maxSteps = 1;
 float maxAngle = 0.79f; //about 45 degrees
 
 float lineWidth = 2.0f;
-//bool needReload = false;
-int sliceAxis = 2;  // 0=X, 1=Y, 2=Z (Z by default)
-float sliceAlpha = 0.5f;  // Default opacity for the slice
 
 // Global objects
 VectorField* vectorField = nullptr;
@@ -117,34 +103,6 @@ bool enableMouseSeeding = false;
 std::vector<std::vector<Point3D>> manualStreamlines;
 float manualSeedLineWidth = 3.0f;
 
-// Orbit camera control
-bool orbitMode = false;
-glm::vec3 orbitCenter;
-float orbitDistance = 0.0f;
-bool isDragging = false;
-float orbitYaw = 0.0f;
-float orbitPitch = 0.0f;
-double lastOrbitX = 0.0f;
-double lastOrbitY = 0.0f;
-
-// Camera mode
-bool cameraMode = false;
-
-// Seeding modes
-enum SeedingMode {
-    GRID_SEEDING = 0,
-    UNIFIED_BRAIN_SEEDING = 1,
-    TOY_DATASET_SEEDING = 2
-};
-
-int seedingMode = UNIFIED_BRAIN_SEEDING;  // Default to grid seeding
-
-// Interactive mode flag for UI
-bool interactiveMode = false;
-
-
-
-
 //------------------------------------------------------------------------------
 // Function declarations
 //------------------------------------------------------------------------------
@@ -158,13 +116,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void key_callback(GLFWwindow* window, int keyCode, int scancode, int actionType, int mods);
 
 // Data handling functions
-void loadData();
-void updateSlice();
 void seedStreamlinesAtPoint(float x, float y, float z);
 float sampleScalarData(float x, float y, float z);
-std::vector<Point3D> generateAnatomicalSeeds(float* scalarData, VectorField* vectorField,
-                                           float intensityThreshold, int seedDensity,
-                                           int sliceAxis, int slicePos, int range);
 
 /**
  * Load the data files into memory and generate the corresponding 3d texture.
@@ -196,7 +149,6 @@ void loadCurrentDataFiles()
     }
 
     //load the scalar data
-    //float* scalarData = nullptr;
     if (readData(currentScalarFile, globalScalarData, dimX, dimY, dimZ) != EXIT_SUCCESS) {
         std::cerr << "Failed to read scalar data from " << currentScalarFile << std::endl;
         return;
@@ -228,11 +180,6 @@ void loadCurrentDataFiles()
         {
             for (size_t z = 0; z < dimZ; z++)
             {
-                //int indexImg = 2 * (z + dimZ * (y + dimY * x)); //TODO check if these indices are correct
-                //int indexMask = x + y * dimX + z * dimX * dimY;
-                //imagedata[indexImg] = globalScalarData[indexMask];
-                //imagedata[indexImg + 1] = zeroMask[indexMask];
-
                 int imgIndex = 2 * x + 2 * dimX * y + 2 * dimX * dimY * z;
                 imagedata[imgIndex] = globalScalarData[x + y * dimX + z * dimX * dimY];
                 imagedata[imgIndex + 1] = zeroMask[x + y * dimX + z * dimX * dimY] ? 1.0f : 0.0f;
@@ -248,10 +195,16 @@ void loadCurrentDataFiles()
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    if (USE_SMOOTH_BACKGROUND)
+    {
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    }
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RG, dimX, dimY, dimZ, 0, GL_RG, GL_FLOAT, imagedata);
 
     delete[] imagedata;
@@ -259,16 +212,13 @@ void loadCurrentDataFiles()
 
     std::cout << "Generated 3d texture" << std::endl;
 
-    // Initialize camera position based on data dimensions
-    cameraPos = glm::vec3(0.0f, 0.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
-    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, 0.0f);
-    //cameraPos = glm::vec3(dimX / 2.0f, dimY / 2.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
     currentSlice = dimZ / 2;
 
+    // Initialize camera position based on data dimensions
+    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, 0.0f);
+
     //generate projection matrix
-    projection = glm::ortho(0.0f, (float)SCR_WIDTH, 0.0f, (float)SCR_HEIGHT, 0.1f, 100.0f);
-    projection = glm::perspective(glm::radians(xFov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
-    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, 0.1f, 100.0f);
+    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, 0.1f, 1000.0f);
 }
 
 /**
@@ -276,26 +226,14 @@ void loadCurrentDataFiles()
  */
 void initImgPlane()
 {
-    //float sliceCoord = (float)currentSlice / (float)dimZ;
-
-    //float vertexData[] =
-    //{
-    //    //position               //texture coord: the slice is selected in the vertex shader
-    //     0.0f, 0.0f, currentSlice,       0.0f, 0.0f, 0.5f, //bottom left
-    //     dimX, 0.0f, currentSlice,       1.0f, 0.0f, 0.5f, //bottom right
-    //     0.0f, dimY, currentSlice,       0.0f, 1.0f, 0.5f, //top left
-    //     dimX, dimY, currentSlice,       1.0f, 1.0f, 0.5f  //top right
-    //};
-    //todo: move verticies so streamlines are centered
     float vertexData[] =
     {
-        //position               //texture coord: the slice is selected in the vertex shader
-         0.0f-0.5f, 0.0f-0.5f, -10.0f,       0.0f, 0.0f, 0.5f, //bottom left
-         dimX-0.5f, 0.0f-0.5f, -10.0f,       1.0f, 0.0f, 0.5f, //bottom right
-         0.0f-0.5f, dimY-0.5f, -10.0f,       0.0f, 1.0f, 0.5f, //top left
-         dimX-0.5f, dimY-0.5f, -10.0f,       1.0f, 1.0f, 0.5f  //top right
+        //position                       //texture coord: the slice is selected in the vertex shader
+         -0.5f,     -0.5f,     -dimZ,    0.0f, 0.0f, 0.5f, //bottom left
+         dimX-0.5f, -0.5f,     -dimZ,    1.0f, 0.0f, 0.5f, //bottom right
+         -0.5f,     dimY-0.5f, -dimZ,    0.0f, 1.0f, 0.5f, //top left
+         dimX-0.5f, dimY-0.5f, -dimZ,    1.0f, 1.0f, 0.5f  //top right
     };
-
 
     unsigned int vertexIndices[] =
     {
@@ -365,326 +303,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         std::cerr << "Error generating streamlines: " << e.what() << std::endl;
         return streamlines;
     }
-
-
-
-    /*
-    if (vectorField) {
-        try {
-            // Create streamline tracer
-            //todo add a max angle slider to ui
-            StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
-
-            // Generate seed points based on selected seeding mode
-            std::vector<Point3D> seeds;
-
-            //todo fix this if statement to be mouse seeding or full seeding
-            //seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
-            std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
-
-            /*
-            if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
-
-
-                //TODO change back
-                // Use specialized toy dataset seeding for toy data
-                //seeds = tracer.generateToyDatasetSeeds(seedDensity);
-                std::cout << "Using specialized toy dataset seeding with " << seeds.size() << " seeds" << std::endl;
-            } else if (seedingMode == UNIFIED_BRAIN_SEEDING && isBrainDataset) {
-
-                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
-
-                //TODO uncomment after testing
-                // Use unified brain seeding for brain data
-                //seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
-
-                // Fallback if needed
-                if (seeds.size() < 100) {
-                    std::cout << "Few unified brain seeds found, falling back to grid seeding" << std::endl;
-                    seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                }
-
-                std::cout << "Using unified brain seeding with " << seeds.size() << " seeds" << std::endl;
-            } else {
-                // Use grid seeding otherwise
-                seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                std::cout << "Using grid seeding with " << seeds.size() << " seeds" << std::endl;
-            }
-            *
-
-            // Trace streamlines from all seed points
-            std::vector<std::vector<Point3D>> streamlines;
-            if (!seeds.empty()) {
-                //todo
-                streamlines = tracer.traceAllStreamlines(seeds);
-                //streamlines = tracer.traceVectors(seeds);
-                std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
-            }
-            else {
-                std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
-            }
-
-
-            // Add manual streamlines if they exist
-            if (!manualStreamlines.empty()) {
-                streamlines.insert(streamlines.end(), manualStreamlines.begin(), manualStreamlines.end());
-                std::cout << "Added " << manualStreamlines.size() << " manual streamlines" << std::endl;
-            }
-
-            // Create streamline renderer with proper coloring mode
-            if (streamlineShader) {
-                streamlineRenderer = new StreamlineRenderer(streamlineShader, lineWidth);
-                streamlineRenderer->prepareStreamlines(streamlines, false);
-                //streamlineRenderer->prepareStreamlines(streamlines, isToyDataSet);
-                std::cout << "Streamline renderer initialized with " << streamlines.size() << " streamlines" << std::endl;
-            }
-            else {
-                std::cerr << "Warning: Streamline shader is null" << std::endl;
-            }
-        }
-        catch (const std::exception& e) {
-            std::cerr << "Error generating streamlines: " << e.what() << std::endl;
-        }
-    }
-    else {
-        std::cerr << "Warning: Vector field is null, skipping streamline generation" << std::endl;
-    }
-    */
 }
-
-
-
-/**
- * @brief Load data from files and prepare for visualization
- *
- * This function handles loading scalar and vector data, initializing OpenGL resources,
- * generating streamlines, and preparing visualization parameters.
- */
-void loadData() {
-    // Reset reload flag at the beginning to prevent recursive calls
-    //needReload = false;
-
-    // Log start of data loading
-    std::cout << "Starting data loading process..." << std::endl;
-
-    // Identify dataset type based on filename
-    //bool isToyDataset = (currentScalarFile.find("toy") != std::string::npos);
-    //bool isBrainDataset = (currentScalarFile.find("brain") != std::string::npos);
-
-    // Only set default values if they haven't been set already
-    /*if (firstLoad) {
-        // Initialize with defaults only the first time
-        if (isToyDataset) {
-            stepSize = 0.2f;
-            minMagnitude = 0.005f;
-            maxLength = 25.0f;
-        } else if (isBrainDataset) {
-            seedDensity = 12;
-            stepSize = 0.5f;
-            minMagnitude = 0.001f;
-            maxLength = 60.0f;
-            maxSteps = 1500;
-        }
-        firstLoad = false;
-    }
-    */
-
-    // Clean up old resources
-    if (vectorField) {
-        delete vectorField;
-        vectorField = nullptr;
-    }
-
-    if (streamlineRenderer) {
-        delete streamlineRenderer;
-        streamlineRenderer = nullptr;
-    }
-
-    // Delete previous texture if it exists
-    if (texture) {
-        glDeleteTextures(1, &texture);
-        texture = 0;
-    }
-
-    // Clean up previous scalar data if it exists
-    if (globalScalarData) {
-        delete[] globalScalarData;
-        globalScalarData = nullptr;
-    }
-
-    // Load scalar data
-    float* scalarData = nullptr;
-    if (readData(currentScalarFile, scalarData, dimX, dimY, dimZ) != EXIT_SUCCESS) {
-        std::cerr << "Failed to read scalar data from " << currentScalarFile << std::endl;
-        return;
-    }
-
-    // Store dimensions for global access
-    scalarDimX = dimX;
-    scalarDimY = dimY;
-    scalarDimZ = dimZ;
-
-    // Create a copy of the scalar data for global access
-    globalScalarData = new float[dimX * dimY * dimZ];
-    std::memcpy(globalScalarData, scalarData, dimX * dimY * dimZ * sizeof(float));
-
-    std::cout << "Loaded scalar data: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
-
-    // Ensure slice rendering buffers are properly initialized
-    if (sliceVAO == 0) {
-        glGenVertexArrays(1, &sliceVAO);
-        glGenBuffers(1, &sliceVBO);
-        glGenBuffers(1, &sliceEBO);
-        std::cout << "Initialized slice rendering buffers" << std::endl;
-    }
-
-    // Setup or update the 3D texture
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_3D, texture);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    float borderColor[] = {0.0f, 0.0f, 0.0f, 0.0f};
-    glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, dimX, dimY, dimZ, 0, GL_RED, GL_FLOAT, scalarData);
-
-    // Free original scalar data since we now have a copy
-    delete[] scalarData;
-    scalarData = nullptr;
-
-    // Load vector field data
-    try {
-        vectorField = new VectorField(currentVectorFile);
-        std::cout << "Loaded vector field successfully" << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error loading vector field: " << e.what() << std::endl;
-        return;
-    }
-
-    // Set appropriate visualization mode and slice for brain data
-    /*
-    if (isBrainDataset) {
-        // For brain data, choose a slice showing good anatomical features
-        currentSlice = dimZ / 2 + 5; // Adjust to find a good slice
-        sliceVisualizationMode = 1;  // Set to anatomical view by default
-    } else {
-        // For toy dataset or other data
-        currentSlice = dimZ / 2;
-    }
-    */
-    currentSlice = dimZ / 2;
-
-    // Always use Z-axis for slicing
-    sliceAxis = 2;  // 0=X, 1=Y, 2=Z (Z by default)
-
-    // Update the slice
-    //todo See if we can update vertex attributes when changing slices instead 
-    updateSlice();
-
-    // Initialize shader parameters
-    if (sliceShader) {
-        sliceShader->use();
-        sliceShader->setFloat("alpha", sliceAlpha);
-        sliceShader->setInt("visualizationMode", sliceVisualizationMode);
-        std::cout << "Set shader visualization mode to: " << sliceVisualizationMode << std::endl;
-    } else {
-        std::cerr << "Warning: Slice shader is null" << std::endl;
-    }
-
-
-
-
-
-    // Adjust camera position based on data dimensions
-    cameraPos = glm::vec3(dimX/2.0f, dimY/2.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
-
-    // Only generate streamlines if vector field was loaded successfully
-    if (vectorField) {
-        try {
-            // Create streamline tracer
-            //todo add a max angle slider to ui
-            StreamlineTracer tracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength);
-
-            // Generate seed points based on selected seeding mode
-            std::vector<Point3D> seeds;
-
-            //todo fix this if statement to be mouse seeding or full seeding
-            //seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
-            std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
-
-            /*
-            if (isToyDataset || seedingMode == TOY_DATASET_SEEDING) {
-
-
-                //TODO change back
-                // Use specialized toy dataset seeding for toy data
-                //seeds = tracer.generateToyDatasetSeeds(seedDensity);
-                std::cout << "Using specialized toy dataset seeding with " << seeds.size() << " seeds" << std::endl;
-            } else if (seedingMode == UNIFIED_BRAIN_SEEDING && isBrainDataset) {
-                
-                seeds = tracer.generateSliceGridSeeds(seedDensity, 0.001f, currentSlice);
-
-                //TODO uncomment after testing
-                // Use unified brain seeding for brain data
-                //seeds = tracer.generateUnifiedBrainSeeds(seedDensity);
-
-                // Fallback if needed
-                if (seeds.size() < 100) {
-                    std::cout << "Few unified brain seeds found, falling back to grid seeding" << std::endl;
-                    seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                }
-
-                std::cout << "Using unified brain seeding with " << seeds.size() << " seeds" << std::endl;
-            } else {
-                // Use grid seeding otherwise
-                seeds = tracer.generateSeedGrid(seedDensity, seedDensity, seedDensity);
-                std::cout << "Using grid seeding with " << seeds.size() << " seeds" << std::endl;
-            }
-            */
-
-            // Trace streamlines from all seed points
-            std::vector<std::vector<Point3D>> streamlines;
-            if (!seeds.empty()) {
-                //todo
-                streamlines = tracer.traceAllStreamlines(seeds);
-                //streamlines = tracer.traceVectors(seeds);
-                std::cout << "Generated " << streamlines.size() << " streamlines" << std::endl;
-            } else {
-                std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
-            }
-
-
-            // Add manual streamlines if they exist
-            if (!manualStreamlines.empty()) {
-                streamlines.insert(streamlines.end(), manualStreamlines.begin(), manualStreamlines.end());
-                std::cout << "Added " << manualStreamlines.size() << " manual streamlines" << std::endl;
-            }
-
-            // Create streamline renderer with proper coloring mode
-            if (streamlineShader) {
-                //todo I don't think this is the recommended way to create new instances in c++
-                streamlineRenderer = new StreamlineRenderer(streamlineShader, lineWidth);
-                streamlineRenderer->prepareStreamlines(streamlines, false);
-                //streamlineRenderer->prepareStreamlines(streamlines, isToyDataSet);
-                std::cout << "Streamline renderer initialized with " << streamlines.size() << " streamlines" << std::endl;
-            } else {
-                std::cerr << "Warning: Streamline shader is null" << std::endl;
-            }
-        } catch (const std::exception& e) {
-            std::cerr << "Error generating streamlines: " << e.what() << std::endl;
-        }
-    } else {
-        std::cerr << "Warning: Vector field is null, skipping streamline generation" << std::endl;
-    }
-
-    // Loading is complete
-    std::cout << "Data loading complete" << std::endl;
-    //needReload = false;
-}
-
-
 
 /**
  * @brief Process continuous keyboard input each frame
@@ -699,114 +318,6 @@ void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
-
-    // Calculate camera movement speed based on delta time for smooth movement
-    float cameraSpeed = 5.0f * deltaTime;
-
-    // Increase speed when in camera mode for faster navigation
-    if (cameraMode) {
-        cameraSpeed *= 2.0f;
-    }
-
-    // WASD keys for horizontal movement
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        // Move forward in camera direction
-        cameraPos += cameraSpeed * cameraFront;
-    }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        // Move backward from camera direction
-        cameraPos -= cameraSpeed * cameraFront;
-    }
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        // Strafe left (perpendicular to camera direction)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        // Strafe right (perpendicular to camera direction)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-
-    // Vertical movement controls
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        // Move up
-        cameraPos += cameraUp * cameraSpeed;
-    }
-    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
-        glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        // Move down
-        cameraPos -= cameraUp * cameraSpeed;
-        }
-}
-
-/**
- * @brief Update the slice geometry and texture coordinates
- *
- * This function updates the OpenGL buffers for the slice plane based on the current slice settings.
- * It creates a textured quad representing a slice through the 3D volume at the current position.
- */
-void updateSlice() {
-    // Validate current slice index against maximum bounds
-    int maxSlice = dimZ - 1;
-    currentSlice = std::min(std::max(0, currentSlice), maxSlice);
-
-    // Calculate normalized texture coordinate for the slice
-    float sliceCoord = (float)currentSlice / (float)(maxSlice);
-
-    // Set up slice for Z-axis only
-    float zPos = currentSlice;
-
-    // Define slice vertices (4 vertices, each with position, color, and texture coordinates)
-    float sliceVertices[36]; // 4 vertices × 9 values per vertex
-
-    // Format for each vertex: x, y, z, r, g, b, tex_s, tex_t, tex_r
-
-    // Bottom-left vertex
-    sliceVertices[0] = 0.0f;         sliceVertices[1] = 0.0f;   sliceVertices[2] = zPos;   // Position
-    sliceVertices[3] = 0.3f;         sliceVertices[4] = 0.3f;   sliceVertices[5] = 0.3f;   // Color
-    sliceVertices[6] = 0.0f;         sliceVertices[7] = 0.0f;   sliceVertices[8] = sliceCoord; // Texcoords
-
-    // Top-left vertex
-    sliceVertices[9] = 0.0f;         sliceVertices[10] = dimY;  sliceVertices[11] = zPos;   // Position
-    sliceVertices[12] = 0.3f;        sliceVertices[13] = 0.3f;  sliceVertices[14] = 0.3f;   // Color
-    sliceVertices[15] = 0.0f;        sliceVertices[16] = 1.0f;  sliceVertices[17] = sliceCoord; // Texcoords
-
-    // Bottom-right vertex
-    sliceVertices[18] = dimX;        sliceVertices[19] = 0.0f;  sliceVertices[20] = zPos;   // Position
-    sliceVertices[21] = 0.3f;        sliceVertices[22] = 0.3f;  sliceVertices[23] = 0.3f;   // Color
-    sliceVertices[24] = 1.0f;        sliceVertices[25] = 0.0f;  sliceVertices[26] = sliceCoord; // Texcoords
-
-    // Top-right vertex
-    sliceVertices[27] = dimX;        sliceVertices[28] = dimY;  sliceVertices[29] = zPos;   // Position
-    sliceVertices[30] = 0.3f;        sliceVertices[31] = 0.3f;  sliceVertices[32] = 0.3f;   // Color
-    sliceVertices[33] = 1.0f;        sliceVertices[34] = 1.0f;  sliceVertices[35] = sliceCoord; // Texcoords
-
-    // Update the vertex buffer with slice geometry
-    glBindVertexArray(sliceVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, sliceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sliceVertices), sliceVertices, GL_STATIC_DRAW);
-
-    // Set up vertex attributes for position (3), color (3), and texture coordinates (3)
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Texture coordinate attribute
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // Define triangle indices for rendering the quad as two triangles
-    unsigned int sliceIndices[] = {
-        0, 1, 2,  // First triangle (bottom-left, top-left, bottom-right)
-        1, 3, 2   // Second triangle (top-left, top-right, bottom-right)
-    };
-
-    // Update the element buffer with the indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sliceEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(sliceIndices), sliceIndices, GL_STATIC_DRAW);
 }
 
 /**
@@ -820,50 +331,8 @@ void updateSlice() {
  * @param ypos Current mouse Y position
  */
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-    // Handle orbit camera rotation
-    if (orbitMode && isDragging) {
-        float xoffset = xpos - lastOrbitX;
-        float yoffset = lastOrbitY - ypos;
-        lastOrbitX = xpos;
-        lastOrbitY = ypos;
-
-        const float sensitivity = 0.1f;
-        xoffset *= sensitivity;
-        yoffset *= sensitivity;
-
-        orbitYaw += xoffset;
-        orbitPitch += yoffset;
-
-        // Clamp pitch to avoid flipping
-        if (orbitPitch > 89.0f)
-            orbitPitch = 89.0f;
-        if (orbitPitch < -89.0f)
-            orbitPitch = -89.0f;
-
-        // Calculate new camera position based on orbit angles
-        float horizontalDistance = orbitDistance * cos(glm::radians(orbitPitch));
-        float verticalDistance = orbitDistance * sin(glm::radians(orbitPitch));
-
-        float offsetX = horizontalDistance * sin(glm::radians(orbitYaw));
-        float offsetZ = horizontalDistance * cos(glm::radians(orbitYaw));
-
-        // Update camera position to orbit around center
-        cameraPos.x = orbitCenter.x + offsetX;
-        cameraPos.y = orbitCenter.y + verticalDistance;
-        cameraPos.z = orbitCenter.z + offsetZ;
-
-        // Update camera front vector to look at center
-        cameraFront = glm::normalize(orbitCenter - cameraPos);
-
-        // Update yaw and pitch for when we exit orbit mode
-        yaw = orbitYaw;
-        pitch = orbitPitch;
-
-        return;
-    }
-
     // Standard camera control (non-orbit)
-    bool moveCamera = cameraMode || (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
+    bool moveCamera = /*cameraMode ||*/ (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
     if (!moveCamera) {
         firstMouse = true;
         return;
@@ -886,25 +355,9 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     xoffset *= (((float)dimX - 2 * xFov) / SCR_WIDTH);
     yoffset *= (((float)dimY - 2 * xFov) / SCR_HEIGHT);
 
+    //move the camera since we use an ortho perspective
     cameraPos.x -= xoffset;
     cameraPos.y -= yoffset;
-
-    // Update camera angles
-    //yaw += xoffset;
-    //pitch += yoffset;
-
-    //// Clamp pitch to prevent flipping
-    //if (pitch > 89.0f)
-    //    pitch = 89.0f;
-    //if (pitch < -89.0f)
-    //    pitch = -89.0f;
-
-    //// Calculate new camera direction
-    //glm::vec3 direction;
-    //direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    //direction.y = sin(glm::radians(pitch));
-    //direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    //cameraFront = glm::normalize(direction);
 
     //update view matrix
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -1067,120 +520,101 @@ float sampleScalarData(float x, float y, float z) {
  * @param action GLFW_PRESS or GLFW_RELEASE
  * @param mods Modifier keys (shift, ctrl, alt)
  */
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) 
+{
 
     (void)mods;  // Unused parameter
 
     // Handle left mouse button
-    if (button == GLFW_MOUSE_BUTTON_LEFT) {
-        if (action == GLFW_PRESS) {
-            // Start orbit rotation if in orbit mode
-            if (orbitMode) {
-                isDragging = true;
+    if (button == GLFW_MOUSE_BUTTON_LEFT) 
+    {
+        //if (action == GLFW_PRESS) {
+        //    // For interactive streamline seeding
+        //    if (enableMouseSeeding) {
+        //        // Get cursor position
+        //        double xpos, ypos;
+        //        glfwGetCursorPos(window, &xpos, &ypos);
 
-                // Get cursor position
-                double xpos, ypos;
-                glfwGetCursorPos(window, &xpos, &ypos);
-                lastOrbitX = xpos;
-                lastOrbitY = ypos;
+        //        // Get window size
+        //        int width, height;
+        //        glfwGetWindowSize(window, &width, &height);
 
-                // Calculate orbit center and distance if not already set
-                if (orbitDistance == 0.0f) {
-                    // Set orbit center to center of data volume
-                    orbitCenter = glm::vec3(dimX/2.0f, dimY/2.0f, dimZ/2.0f);
+        //        // Convert to normalized device coordinates (-1 to 1)
+        //        float ndcX = (2.0f * xpos / width) - 1.0f;
+        //        float ndcY = 1.0f - (2.0f * ypos / height);
 
-                    // Calculate distance from camera to center
-                    orbitDistance = glm::length(cameraPos - orbitCenter);
+        //        // Create clip space positions (near and far planes)
+        //        glm::vec4 clipPosNear = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); // Near plane
+        //        glm::vec4 clipPosFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);   // Far plane
 
-                    // Calculate initial yaw and pitch based on current camera position
-                    orbitYaw = yaw;
-                    orbitPitch = pitch;
-                }
-            }
-            // For interactive streamline seeding
-            else if (enableMouseSeeding) {
-                // Get cursor position
-                double xpos, ypos;
-                glfwGetCursorPos(window, &xpos, &ypos);
+        //        // Convert to world space
+        //        glm::mat4 projection = glm::perspective(glm::radians(xFov), (float)width / height, 0.1f, 1000.0f);
+        //        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        //        glm::mat4 invProjView = glm::inverse(projection * view);
 
-                // Get window size
-                int width, height;
-                glfwGetWindowSize(window, &width, &height);
+        //        glm::vec4 worldPosNear = invProjView * clipPosNear;
+        //        worldPosNear /= worldPosNear.w;
 
-                // Convert to normalized device coordinates (-1 to 1)
-                float ndcX = (2.0f * xpos / width) - 1.0f;
-                float ndcY = 1.0f - (2.0f * ypos / height);
+        //        glm::vec4 worldPosFar = invProjView * clipPosFar;
+        //        worldPosFar /= worldPosFar.w;
 
-                // Create clip space positions (near and far planes)
-                glm::vec4 clipPosNear = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); // Near plane
-                glm::vec4 clipPosFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);   // Far plane
+        //        // Calculate ray for intersection test
+        //        glm::vec3 rayOrigin = cameraPos;
+        //        glm::vec3 rayDir = glm::normalize(glm::vec3(worldPosFar - worldPosNear));
 
-                // Convert to world space
-                glm::mat4 projection = glm::perspective(glm::radians(xFov), (float)width / height, 0.1f, 1000.0f);
-                glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-                glm::mat4 invProjView = glm::inverse(projection * view);
+        //        // Debug output
+        //        std::cout << "Ray origin: (" << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z << ")" << std::endl;
+        //        std::cout << "Ray direction: (" << rayDir.x << ", " << rayDir.y << ", " << rayDir.z << ")" << std::endl;
 
-                glm::vec4 worldPosNear = invProjView * clipPosNear;
-                worldPosNear /= worldPosNear.w;
+        //        // Calculate intersection with current slice plane
+        //        bool hit = false;
+        //        glm::vec3 hitPos;
+        //        /*
+        //        // Calculate intersection based on the active slice axis
+        //        if (sliceAxis == 0) { // X-axis slice
+        //            float t = (currentSlice - rayOrigin.x) / rayDir.x;
+        //            if (t > 0) { // Check if intersection is in front of camera
+        //                hitPos = rayOrigin + rayDir * t;
+        //                if (hitPos.y >= 0 && hitPos.y < dimY && hitPos.z >= 0 && hitPos.z < dimZ) {
+        //                    hit = true;
+        //                    seedStreamlinesAtPoint(currentSlice, hitPos.y, hitPos.z);
+        //                }
+        //            }
+        //        }
+        //        else if (sliceAxis == 1) { // Y-axis slice
+        //            float t = (currentSlice - rayOrigin.y) / rayDir.y;
+        //            if (t > 0) {
+        //                hitPos = rayOrigin + rayDir * t;
+        //                if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.z >= 0 && hitPos.z < dimZ) {
+        //                    hit = true;
+        //                    seedStreamlinesAtPoint(hitPos.x, currentSlice, hitPos.z);
+        //                }
+        //            }
+        //        }
+        //        else { // Z-axis slice
+        //            float t = (currentSlice - rayOrigin.z) / rayDir.z;
+        //            if (t > 0) {
+        //                hitPos = rayOrigin + rayDir * t;
+        //                if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.y >= 0 && hitPos.y < dimY) {
+        //                    hit = true;
+        //                    seedStreamlinesAtPoint(hitPos.x, hitPos.y, currentSlice);
+        //                }
+        //            }
+        //        }
+        //        */
 
-                glm::vec4 worldPosFar = invProjView * clipPosFar;
-                worldPosFar /= worldPosFar.w;
-
-                // Calculate ray for intersection test
-                glm::vec3 rayOrigin = cameraPos;
-                glm::vec3 rayDir = glm::normalize(glm::vec3(worldPosFar - worldPosNear));
-
-                // Debug output
-                std::cout << "Ray origin: (" << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z << ")" << std::endl;
-                std::cout << "Ray direction: (" << rayDir.x << ", " << rayDir.y << ", " << rayDir.z << ")" << std::endl;
-
-                // Calculate intersection with current slice plane
-                bool hit = false;
-                glm::vec3 hitPos;
-
-                // Calculate intersection based on the active slice axis
-                if (sliceAxis == 0) { // X-axis slice
-                    float t = (currentSlice - rayOrigin.x) / rayDir.x;
-                    if (t > 0) { // Check if intersection is in front of camera
-                        hitPos = rayOrigin + rayDir * t;
-                        if (hitPos.y >= 0 && hitPos.y < dimY && hitPos.z >= 0 && hitPos.z < dimZ) {
-                            hit = true;
-                            seedStreamlinesAtPoint(currentSlice, hitPos.y, hitPos.z);
-                        }
-                    }
-                }
-                else if (sliceAxis == 1) { // Y-axis slice
-                    float t = (currentSlice - rayOrigin.y) / rayDir.y;
-                    if (t > 0) {
-                        hitPos = rayOrigin + rayDir * t;
-                        if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.z >= 0 && hitPos.z < dimZ) {
-                            hit = true;
-                            seedStreamlinesAtPoint(hitPos.x, currentSlice, hitPos.z);
-                        }
-                    }
-                }
-                else { // Z-axis slice
-                    float t = (currentSlice - rayOrigin.z) / rayDir.z;
-                    if (t > 0) {
-                        hitPos = rayOrigin + rayDir * t;
-                        if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.y >= 0 && hitPos.y < dimY) {
-                            hit = true;
-                            seedStreamlinesAtPoint(hitPos.x, hitPos.y, currentSlice);
-                        }
-                    }
-                }
-
-                // Log the result of the intersection test
-                if (hit) {
-                    std::cout << "Hit slice at position: (" << hitPos.x << ", " << hitPos.y << ", " << hitPos.z << ")" << std::endl;
-                } else {
-                    std::cout << "No intersection with current slice" << std::endl;
-                }
-            }
-        }
+        //        // Log the result of the intersection test
+        //        if (hit) {
+        //            std::cout << "Hit slice at position: (" << hitPos.x << ", " << hitPos.y << ", " << hitPos.z << ")" << std::endl;
+        //        }
+        //        else {
+        //            std::cout << "No intersection with current slice" << std::endl;
+        //        }
+        //   }
+       /* }
         else if (action == GLFW_RELEASE) {
             isDragging = false;
-        }
+        }*/
     }
 }
 
@@ -1197,21 +631,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
  * @param mods Modifier keys (shift, ctrl, alt)
  */
 void key_callback(GLFWwindow* window, int keyCode, int scancode, int actionType, int mods) {
-    // Unused parameters
-    (void)scancode;
-    (void)mods;
-
-    // Toggle camera control mode with Tab key
-    if (keyCode == GLFW_KEY_TAB && actionType == GLFW_PRESS) {
-        cameraMode = !cameraMode;
-        if (cameraMode) {
-            // When in camera mode, hide the cursor and capture mouse movement
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        } else {
-            // When not in camera mode, show the cursor for UI interaction
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-    }
+    
 }
 
 
@@ -1234,21 +654,11 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     xFov -= (float)yoffset * 2.0f;
     yFov -= (float)yoffset * 2.0f;
 
-    // Clamp xFov to reasonable limits
-    //if (xFov < 1.0f)
-    //    xFov = 1.0f;  // Maximum zoom level
-    //if (xFov > 45.0f)
-    //    xFov = 45.0f; // Minimum zoom level
-
     //update projection matrix
-    projection = glm::perspective(glm::radians(xFov),
-        (float)SCR_WIDTH / (float)SCR_HEIGHT,
-        0.1f, 1000.0f);
-    //if (xFov < 0.0f) xFov = 0.0f;
     if (xFov > ((float) dimX / 2.0f) - 1.0f) xFov = ((float)dimX / 2.0f) - 1.0f;
     if (yFov > ((float) dimY / 2.0f) - 1.0f) yFov = ((float)dimY / 2.0f) - 1.0f;
 
-    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, 0.1f, 100.0f);
+    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, 0.1f, 1000.0f);
 
 }
 
@@ -1348,30 +758,6 @@ int main(int argc, char* argv[]) {
 
     switchDataSet();
 
-    // Set data file paths relative to the build directory
-    // todo
-    //currentScalarFile = BRAIN_SCALAR_PATH;
-    //currentVectorFile = BRAIN_VECTOR_PATH;
-
-    //std::cout << "Updated Scalar File Path: " << currentScalarFile << std::endl;
-    //std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;
-
-    //// Initial data loading
-    ////loadData();
-    //loadCurrentDataFiles();
-    //initImgPlane();
-
-    ////Initialize a streamline tracer and renderer
-    //streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, minMagnitude, maxLength); //TODO should this be a pointer?
-    //streamlineRenderer = new StreamlineRenderer(streamlineShader);
-
-    ////initialize view matrix
-    //view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-    ////generate the initial streamlines
-    //std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
-    //streamlineRenderer->prepareStreamlines(streamlines);
-
     // Main render loop
     while (!glfwWindowShouldClose(window)) {
         // Calculate delta time
@@ -1392,10 +778,10 @@ int main(int argc, char* argv[]) {
         model = glm::translate(model, glm::vec3(-dimX/2.0f, -dimY/2.0f, -dimZ/2.0f));
         model = glm::scale(model, glm::vec3(1.0f)); // Adjust scale if needed
 
+        //todo unnecessary
         // Create offset model matrix for streamlines to avoid z-fighting
         glm::mat4 streamlineModel = model;
         streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
-        //streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.01f));
 
         // Set up depth testing
         glEnable(GL_DEPTH_TEST);
@@ -1412,11 +798,8 @@ int main(int argc, char* argv[]) {
             sliceShader->setMat4("projection", projection); //TODO if this is an inefficient operation we should only set the projection matrix at the start
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
-            //sliceShader->setFloat("alpha", sliceAlpha);
-            //sliceShader->setInt("visualizationMode", sliceVisualizationMode);
-            //todo fix the vertx and fragment shaders
+
             float currentSliceF = (float)currentSlice / ((float)dimZ - 1.0f);
-            //std::cout << currentSliceF << std::endl;
             sliceShader->setFloat("currentSlice", currentSliceF);
 
             glBindVertexArray(sliceVAO);
@@ -1435,8 +818,6 @@ int main(int argc, char* argv[]) {
             streamlineRenderer->render();
         }
 
-        //todo should we do all the imgui code every frame?
-
         // ImGui rendering
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -1448,18 +829,8 @@ int main(int argc, char* argv[]) {
         // Camera control section
         ImGui::Separator();
         ImGui::Text("Camera Controls");
-
-        // Reset button
-        if (ImGui::Button("Reset Camera")) {
-            cameraPos = glm::vec3(dimX/4.0f, dimY/4.0f, 2.0f * std::max(std::max(dimX, dimY), dimZ));
-            cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-            yaw = -90.0f;
-            pitch = 0.0f;
-            view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        }
-
-        // Orbit mode toggle
-        ImGui::Checkbox("Orbit Camera Mode", &orbitMode);
+        ImGui::TextWrapped("Move the camera using the right mouse button.");
+        ImGui::TextWrapped("Zoom using the mouse scrollwheel.");
 
         // Data selection section
         ImGui::Separator();
@@ -1501,6 +872,7 @@ int main(int argc, char* argv[]) {
 
         if (ImGui::SliderFloat("Line width", &lineWidth, 1.0f, 5.0f, "%.2f"))
         {
+            //todo make linewidth relative to zoom level.
             streamlineRenderer->setLineWidth(lineWidth);
         }
 
@@ -1572,14 +944,8 @@ int main(int argc, char* argv[]) {
         }
 
         // Slice position control
-        int maxSliceIndex = (sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
+        int maxSliceIndex = dimZ;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
         ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
-
-        //// Slice opacity control
-        //if (ImGui::SliderFloat("Slice Opacity", &sliceAlpha, 0.0f, 1.0f)) {
-        //    sliceShader->use();
-        //    sliceShader->setFloat("alpha", sliceAlpha);
-        //}
 
         // Interactive seeding section
         /*ImGui::Separator();
@@ -1600,12 +966,6 @@ int main(int argc, char* argv[]) {
                 manualStreamlines.clear();
                 needReload = true;
             }
-        }*/
-
-        // Reload button
-        /*ImGui::Separator();
-        if (ImGui::Button("Reload Data") || needReload) {
-            loadData();
         }*/
 
         ImGui::End();

@@ -51,36 +51,6 @@ public:
     std::vector<Point3D> traceStreamline(const Point3D& seed);
 
     /**
-     * @brief Generate a uniform grid of seed points
-     * 
-     * @param strideX Spacing between seeds in X direction
-     * @param strideY Spacing between seeds in Y direction
-     * @param strideZ Spacing between seeds in Z direction
-     * 
-     * @return Vector of seed points
-     */
-    std::vector<Point3D> generateSeedGrid(int strideX = 5, int strideY = 5, int strideZ = 5);
-
-    /**
-     * @brief Generate seed points focused on brain anatomy
-     * 
-     * @param seedDensity Relative density of seed points
-     * @param minIntensity Minimum intensity threshold for seed placement
-     * 
-     * @return Vector of seed points
-     */
-    std::vector<Point3D> generateUnifiedBrainSeeds(int seedDensity, float minIntensity = 0.15f);
-
-    /**
-     * @brief Generate seed points optimized for toy dataset
-     * 
-     * @param seedDensity Relative density of seed points
-     * 
-     * @return Vector of seed points
-     */
-    std::vector<Point3D> generateToyDatasetSeeds(int seedDensity);
-
-    /**
      * @brief Trace streamlines from all provided seed points
      * @param seeds Vector of seed points
      * @return Vector of streamlines (each a vector of points)
@@ -88,6 +58,7 @@ public:
     std::vector<std::vector<Point3D>> traceAllStreamlines(const std::vector<Point3D>& seeds);
 
     std::vector<Point3D> generateSliceGridSeeds(int seedDensity, int slice);
+
     std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds);
 
 private:
@@ -129,14 +100,4 @@ private:
      * @return Next position
      */
     Point3D rk4Integrate(const Point3D& pos, float step);
-
-    //calculates v - u
-    Point3D vecDiff(Point3D v, Point3D u);
-
-    //normalizes a vector v
-    Point3D normalize(Point3D v);
-
-    void normalizeInPlace(Point3D v);
-
-    float dot(Point3D v, Point3D u);
 };

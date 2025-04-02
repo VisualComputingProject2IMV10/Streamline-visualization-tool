@@ -160,11 +160,11 @@ bool* VectorField::calculateZeroMask()
         {
             for (size_t z = 0; z < this->dimZ; z++)
             {
-                index = x + y * dimX + z * dimX * dimY; //todo check that this is the correct index
+                index = x + y * dimX + z * dimX * dimY;
                 this->getVector(x, y, z, vx, vy, vz);
 
                 //if we get a zero vector, we are outside the image
-                if (vx == 0.0f && vy == 0.0f && vz == 0.0f) //todo might get floating point precision errors here, not sure
+                if (vx == 0.0f && vy == 0.0f && vz == 0.0f)
                 {
                     mask[index] = false;
                 }
