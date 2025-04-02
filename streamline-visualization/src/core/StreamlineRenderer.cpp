@@ -53,15 +53,14 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
     for (int i = 0; i < streamlines.size(); i++)
     {
         if (streamlines[i].empty()) continue;
-
+        float r, g, b;
         for (int j = 0; j < streamlines[i].size()-1; j++)
         {
             //get color based on direction
-            float r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
-            float g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
-            float b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
-            //float b = 0.0f;
-
+            r = std::abs(streamlines[i][j + 1].x - streamlines[i][j].x);
+            g = std::abs(streamlines[i][j + 1].y - streamlines[i][j].y);
+            b = std::abs(streamlines[i][j + 1].z - streamlines[i][j].z);
+            
             //Add point to segment
             vertices[currentIndex * 6 + 0] = streamlines[i][j].x;
             vertices[currentIndex * 6 + 1] = streamlines[i][j].y;
@@ -75,10 +74,6 @@ void StreamlineRenderer::prepareStreamlines(const std::vector<std::vector<Point3
         }
 
         //manually add last vertex since we can't calculate the angle
-        float r = vertices[vertices.size() - 3];
-        float g = vertices[vertices.size() - 2];
-        float b = vertices[vertices.size() - 1];
-
         vertices[currentIndex * 6 + 0] = streamlines[i][streamlines[i].size() - 1].x;
         vertices[currentIndex * 6 + 1] = streamlines[i][streamlines[i].size() - 1].y;
         vertices[currentIndex * 6 + 2] = streamlines[i][streamlines[i].size() - 1].z;
