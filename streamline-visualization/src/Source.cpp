@@ -294,7 +294,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         if (useMouseSeeding)
         {
             float seedRadius = std::max(dimX / 30.0f, dimY / 30.0f);
-            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 1.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 50.0f);
         }
         else
         {
@@ -588,95 +588,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             }
 
         }
-
-
-        //if (action == GLFW_PRESS) {
-        //    // For interactive streamline seeding
-        //    if (enableMouseSeeding) {
-        //        // Get cursor position
-        //        double xpos, ypos;
-        //        glfwGetCursorPos(window, &xpos, &ypos);
-
-        //        // Get window size
-        //        int width, height;
-        //        glfwGetWindowSize(window, &width, &height);
-
-        //        // Convert to normalized device coordinates (-1 to 1)
-        //        float ndcX = (2.0f * xpos / width) - 1.0f;
-        //        float ndcY = 1.0f - (2.0f * ypos / height);
-
-        //        // Create clip space positions (near and far planes)
-        //        glm::vec4 clipPosNear = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); // Near plane
-        //        glm::vec4 clipPosFar = glm::vec4(ndcX, ndcY, 1.0f, 1.0f);   // Far plane
-
-        //        // Convert to world space
-        //        glm::mat4 projection = glm::perspective(glm::radians(xFov), (float)width / height, 0.1f, 1000.0f);
-        //        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        //        glm::mat4 invProjView = glm::inverse(projection * view);
-
-        //        glm::vec4 worldPosNear = invProjView * clipPosNear;
-        //        worldPosNear /= worldPosNear.w;
-
-        //        glm::vec4 worldPosFar = invProjView * clipPosFar;
-        //        worldPosFar /= worldPosFar.w;
-
-        //        // Calculate ray for intersection test
-        //        glm::vec3 rayOrigin = cameraPos;
-        //        glm::vec3 rayDir = glm::normalize(glm::vec3(worldPosFar - worldPosNear));
-
-        //        // Debug output
-        //        std::cout << "Ray origin: (" << rayOrigin.x << ", " << rayOrigin.y << ", " << rayOrigin.z << ")" << std::endl;
-        //        std::cout << "Ray direction: (" << rayDir.x << ", " << rayDir.y << ", " << rayDir.z << ")" << std::endl;
-
-        //        // Calculate intersection with current slice plane
-        //        bool hit = false;
-        //        glm::vec3 hitPos;
-        //        /*
-        //        // Calculate intersection based on the active slice axis
-        //        if (sliceAxis == 0) { // X-axis slice
-        //            float t = (currentSlice - rayOrigin.x) / rayDir.x;
-        //            if (t > 0) { // Check if intersection is in front of camera
-        //                hitPos = rayOrigin + rayDir * t;
-        //                if (hitPos.y >= 0 && hitPos.y < dimY && hitPos.z >= 0 && hitPos.z < dimZ) {
-        //                    hit = true;
-        //                    seedStreamlinesAtPoint(currentSlice, hitPos.y, hitPos.z);
-        //                }
-        //            }
-        //        }
-        //        else if (sliceAxis == 1) { // Y-axis slice
-        //            float t = (currentSlice - rayOrigin.y) / rayDir.y;
-        //            if (t > 0) {
-        //                hitPos = rayOrigin + rayDir * t;
-        //                if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.z >= 0 && hitPos.z < dimZ) {
-        //                    hit = true;
-        //                    seedStreamlinesAtPoint(hitPos.x, currentSlice, hitPos.z);
-        //                }
-        //            }
-        //        }
-        //        else { // Z-axis slice
-        //            float t = (currentSlice - rayOrigin.z) / rayDir.z;
-        //            if (t > 0) {
-        //                hitPos = rayOrigin + rayDir * t;
-        //                if (hitPos.x >= 0 && hitPos.x < dimX && hitPos.y >= 0 && hitPos.y < dimY) {
-        //                    hit = true;
-        //                    seedStreamlinesAtPoint(hitPos.x, hitPos.y, currentSlice);
-        //                }
-        //            }
-        //        }
-        //        */
-
-        //        // Log the result of the intersection test
-        //        if (hit) {
-        //            std::cout << "Hit slice at position: (" << hitPos.x << ", " << hitPos.y << ", " << hitPos.z << ")" << std::endl;
-        //        }
-        //        else {
-        //            std::cout << "No intersection with current slice" << std::endl;
-        //        }
-        //   }
-       /* }
-        else if (action == GLFW_RELEASE) {
-            isDragging = false;
-        }*/
     }
 }
 
@@ -711,6 +622,9 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
     (void)window;   // Unused parameter
     (void)xoffset;  // Unused parameter
+
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse) return;
 
     // Adjust field of view (zoom) based on scroll wheel
     xFov -= (float)yoffset * 2.0f;
@@ -966,6 +880,8 @@ int main(int argc, char* argv[]) {
         // Streamline display section
         ImGui::Separator();
         ImGui::Text("Streamline Seeding");
+
+        ImGui::TextWrapped("Coming soon: tensor eigenvector extraction");
 
         // Slice position control
         int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
