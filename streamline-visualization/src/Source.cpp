@@ -567,22 +567,25 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     {
         if (action == GLFW_PRESS)
         {
-            double xpos, ypos;
-            glfwGetCursorPos(window, &xpos, &ypos);
-            int scrWidth, scrHeight;
-            glfwGetWindowSize(window, &scrWidth, &scrHeight);
+            if (useMouseSeeding)
+            {
+                double xpos, ypos;
+                glfwGetCursorPos(window, &xpos, &ypos);
+                int scrWidth, scrHeight;
+                glfwGetWindowSize(window, &scrWidth, &scrHeight);
 
-            //todo may need to change this for the casting to work properly
-            float ndcX = (2.0f * xpos) / scrWidth - 1.0f;
-            float ndcY = 1.0f - (2.0f * ypos) / scrHeight;
+                //todo may need to change this for the casting to work properly
+                float ndcX = (2.0f * xpos) / scrWidth - 1.0f;
+                float ndcY = 1.0f - (2.0f * ypos) / scrHeight;
 
-            glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
-            glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
-            ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
-            glm::vec4 ray_world = glm::inverse(view) * ray_eye;
-            mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+                glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
+                glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+                ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
+                glm::vec4 ray_world = glm::inverse(view) * ray_eye;
+                mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
             
-            regenerateStreamLines();
+                regenerateStreamLines();
+            }
 
         }
 

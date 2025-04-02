@@ -298,7 +298,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
 
     //calculate the rest of the path
     for (int step = 1; step < maxSteps && totalLength < maxLength; step++)
-    {   
+    {
         nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
 
         //check if the next point is still in bounds
@@ -307,7 +307,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
             path.shrink_to_fit(); //release unused memory
             return path;
         }
-        
+
         glm::vec3 prevDir = glm::normalize(currentPos - prevPos);
         glm::vec3 newDir = glm::normalize(nextPos - currentPos);
 
@@ -319,7 +319,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
             path.shrink_to_fit(); //release unused memory
             return path;
         }
-        
+
         path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
 
         prevPos = currentPos;
@@ -331,64 +331,6 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
     path.shrink_to_fit(); //release unused memory
     return path;
 }
-
-
-
-
-//std::vector<Point3D> StreamlineTracer::traceStreamlineDirection1(const Point3D& seed, int direction) {
-//    std::vector<Point3D> path;
-//    Point3D currentPos = seed;
-//    float totalLength = 0.0f;
-//
-//    for (int step = 0; step < maxSteps && totalLength < maxLength; step++) {
-//        // Get interpolated vector at current position
-//        float vx, vy, vz;
-//        vectorField->interpolateVector(currentPos.x, currentPos.y, currentPos.z, vx, vy, vz);
-//
-//        // Check vector magnitude for termination
-//        float magnitude = std::sqrt(vx*vx + vy*vy + vz*vz);
-//        if (magnitude < minMagnitude) break;
-//
-//        // Use RK4 integration for better accuracy
-//        Point3D nextPos = rk4Integrate(currentPos, direction * stepSize);
-//
-//        // Strict bounds checking
-//        if (!vectorField->isInBounds(nextPos.x, nextPos.y, nextPos.z)) break;
-//
-//        //check if the angle is not too much
-//        //Point3D prevPos = path[path.size()];
-//        Point3D prevPos;
-//        if (!path.empty()) prevPos = path.back();
-//
-//        //std::cout << "Prevpos: " << prevPos.x << " " << prevPos.y << " " << prevPos.z << std::endl;
-//
-//        Point3D prevVec = normalize(vecDiff(currentPos, prevPos));
-//        Point3D nextVec = normalize(vecDiff(nextPos, currentPos));//TODO this is probably inefficient because we already have the vector somewhere
-//        
-//        if (dot(prevVec, nextVec) > std::cosf(maxAngle)) //TODO can optimize this away by putting the acos somewhere else
-//        {
-//            printf("greater than angle\n");
-//            break;
-//        }
-//
-//        // Calculate step distance
-//        float stepDist = std::sqrt(
-//            (nextPos.x - currentPos.x) * (nextPos.x - currentPos.x) +
-//            (nextPos.y - currentPos.y) * (nextPos.y - currentPos.y) +
-//            (nextPos.z - currentPos.z) * (nextPos.z - currentPos.z)
-//        );
-//
-//        // Add to path and update tracking
-//        path.push_back(nextPos);
-//        currentPos = nextPos;
-//        totalLength += stepDist;
-//
-//        // Prevent infinite loops with extreme step count
-//        if (path.size() > maxSteps) break;
-//    }
-//
-//    return path;
-//}
 
 std::vector<std::vector<Point3D>> StreamlineTracer::traceAllStreamlines(const std::vector<Point3D>& seeds) {
     std::vector<std::vector<Point3D>> streamlines;
