@@ -59,6 +59,10 @@ const bool USE_SMOOTH_BACKGROUND = false;
 const float NEAR_CAM_PLANE = 0.01f;
 const float FAR_CAM_PLANE = 1000.0f;
 
+const short AXIS_X = 0;
+const short AXIS_Y = 1;
+const short AXIS_Z = 2;
+
 //projection matrices
 glm::mat4 projection;
 glm::mat4 view;
@@ -100,7 +104,11 @@ Shader* glyphShader = nullptr;
 short dimX = 0, dimY = 0, dimZ = 0;
 unsigned int texture = 0;
 unsigned int sliceVAO = 0, sliceVBO = 0, sliceEBO = 0;
-int currentSlice = 0;
+//threedimensional
+int currentSliceX = 0;
+int currentSliceY = 0;
+int currentSliceZ = 0;
+int selectedAxis = AXIS_Z; //0 = x, 1 = y, 2 = z
 
 
 // Interactive seeding
@@ -221,13 +229,27 @@ void loadCurrentDataFiles()
 
     std::cout << "Generated 3d texture" << std::endl;
 
-    currentSlice = dimZ / 2;
+    currentSliceX = dimX / 2;
+    currentSliceY = dimY / 2;
+    currentSliceZ = dimZ / 2;
 
     // Initialize camera position based on data dimensions
-    cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
-
-    //generate projection matrix
-    projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    if (selectedAxis == AXIS_X)
+    {
+        cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
+        projection = glm::ortho(0.0f, (float)dimY, 0.0f, (float)dimZ, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else if (selectedAxis == AXIS_Y)
+    {
+        cameraPos = glm::vec3(-dimX / 2.0f, dimY, -dimZ / 2.0f);
+        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimZ, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else if (selectedAxis == AXIS_Z)
+    {
+        cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
+        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else throw std::runtime_error("invalid axis selected");
 }
 
 /**
@@ -237,11 +259,11 @@ void initImgPlane()
 {
     float vertexData[] =
     {
-        //position                       //texture coord: the slice is selected in the vertex shader
-         -0.5f,     -0.5f,     -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
-         dimX-0.5f, -0.5f,     -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
-         -0.5f,     dimY-0.5f, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
-         dimX-0.5f, dimY-0.5f, -2.0f * dimZ,    1.0f, 1.0f, 0.5f  //top right
+        //position                    //texture coord: the slice is selected in the vertex shader
+         0.0f, 0.0f, -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
+         dimX, 0.0f, -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
+         0.0f, dimY, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
+         dimX, dimY, -2.0f * dimZ,    1.0f, 1.0f, 0.5f  //top right
     };
 
     unsigned int vertexIndices[] =
@@ -294,11 +316,11 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         if (useMouseSeeding)
         {
             float seedRadius = std::max(dimX / 30.0f, dimY / 30.0f);
-            seeds = streamlineTracer->generateMouseSeeds(currentSlice, mouseSeedLoc, seedRadius, 50.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSliceZ, mouseSeedLoc, seedRadius, 50.0f);
         }
         else
         {
-            seeds = streamlineTracer->generateSliceGridSeeds(currentSlice);
+            seeds = streamlineTracer->generateSliceGridSeeds(currentSliceZ);
         }
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
@@ -756,11 +778,12 @@ int main(int argc, char* argv[]) {
         //image plane model matrix
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-dimX/2.0f, -dimY/2.0f, -dimZ/2.0f));
+        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f)); // Adjust scale if needed
 
-        //todo unnecessary
-        // Create offset model matrix for streamlines to avoid z-fighting
-        glm::mat4 streamlineModel = model;
+        // Create model matrix for streamlines
+        glm::mat4 streamlineModel = glm::mat4(1.0f);
+        streamlineModel = glm::translate(streamlineModel, glm::vec3(-dimX / 2.0f, -dimY / 2.0f, -dimZ / 2.0f));
         streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
 
         // Set up depth testing
@@ -779,8 +802,8 @@ int main(int argc, char* argv[]) {
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
 
-            float currentSliceF = (float)currentSlice / ((float)dimZ - 1.0f);
-            sliceShader->setFloat("currentSlice", currentSliceF);
+            float currentSliceZF = (float)currentSliceZ / ((float)dimZ - 1.0f);
+            sliceShader->setFloat("currentSliceZ", currentSliceZF);
 
             glBindVertexArray(sliceVAO);
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -889,7 +912,7 @@ int main(int argc, char* argv[]) {
 
         // Slice position control
         int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
-        paramsChanged |= ImGui::SliderInt("Slice", &currentSlice, 0, maxSliceIndex);
+        paramsChanged |= ImGui::SliderInt("Slice", &currentSliceZ, 0, maxSliceIndex);
 
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
 
