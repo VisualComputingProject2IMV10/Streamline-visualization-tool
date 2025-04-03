@@ -67,8 +67,8 @@ glm::mat4 view;
 float* globalScalarData = nullptr;
 int scalarDimX = 0, scalarDimY = 0, scalarDimZ = 0;
 
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 800;
+const unsigned int SCR_WIDTH = 1000;
+const unsigned int SCR_HEIGHT = 1000;
 
 // Timing
 float deltaTime = 0.0f;
@@ -876,6 +876,10 @@ int main(int argc, char* argv[]) {
             maxAngle = maxAngleDegrees * (std::_Pi_val / 180);
             paramsChanged = true;
         }
+
+        paramsChanged |= ImGui::Checkbox("FlipX", &(vectorField->flipX));
+        paramsChanged |= ImGui::Checkbox("FlipY", &(vectorField->flipY));
+        paramsChanged |= ImGui::Checkbox("FlipZ", &(vectorField->flipZ));
 
         // Streamline display section
         ImGui::Separator();

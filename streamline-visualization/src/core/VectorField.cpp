@@ -49,9 +49,10 @@ void VectorField::getVector(int x, int y, int z, float& vx, float& vy, float& vz
     int index = 3 * (z + dimZ * (y + dimY * x));
 
     // Extract vector components
-    vx = data[index];
-    vy = data[index + 1];
-    vz = data[index + 2];
+    //todo add a flip axis button
+    vx = flipX ? -1.0f * data[index] : data[index];
+    vy = flipY ? -1.0f * data[index + 1] : data[index + 1];
+    vz = flipZ ? -1.0f * data[index + 2] : data[index + 2];
 }
 
 void VectorField::interpolateVector(float x, float y, float z, float& vx, float& vy, float& vz) const {

@@ -97,6 +97,11 @@ public:
      */
     float getSpacingZ() const { return spacingZ; }
 
+    //some nifti files have the axis flipped
+    bool flipX;
+    bool flipY;
+    bool flipZ;
+
 private:
     float* data;         ///< Vector data (3 components per voxel)
     short dimX, dimY, dimZ;  ///< Dimensions of the vector field
