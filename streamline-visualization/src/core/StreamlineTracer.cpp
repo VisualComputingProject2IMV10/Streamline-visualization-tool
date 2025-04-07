@@ -146,7 +146,7 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int sliceX, int sliceY
 
     for (size_t i = 0; i < maxSeeds; i++)
     {
-        //todo make it spherical
+        //spherical random sampling
         float r = seedRadius * std::sqrtf((float) std::rand() / RAND_MAX);
         float theta = (float) std::rand() / RAND_MAX * 2 * std::_Pi_val;
         float phi = (float)std::rand() / RAND_MAX * std::_Pi_val;
@@ -155,20 +155,18 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int sliceX, int sliceY
         
         if (axis == AXIS_X)
         {
-            //seedPoint = glm::vec3(sliceX, seedLoc.y + r * std::cosf(theta), seedLoc.z + r * std::sinf(theta));
             seedPoint += glm::vec3(sliceX, seedLoc.y, seedLoc.z);
         }
         else if (axis == AXIS_Y)
         {
-            //seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), sliceY, seedLoc.z + r * std::sinf(theta));
             seedPoint += glm::vec3(seedLoc.x, sliceY, seedLoc.z);
         }
         else if (axis == AXIS_Z)
         {
-            //seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), seedLoc.y + r * std::sinf(theta), sliceZ);
             seedPoint += glm::vec3(seedLoc.x, seedLoc.y, sliceZ);
         }
 
+        //check if the seed is valid
         if (vectorField->isInBounds(seedPoint.x, seedPoint.y, seedPoint.z))
         {
             if (inZeroMask(seedPoint))

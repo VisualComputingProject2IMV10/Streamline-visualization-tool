@@ -850,13 +850,13 @@ int main(int argc, char* argv[]) {
         {
             model = glm::translate(model, glm::vec3(-0.5f, 0.0f, -0.5f));
             //a bit hacky, but fixes an off by one error
-            model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+            //model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
         }
         else if (selectedAxis == AXIS_Z)
         {
             model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
             //a bit hacky, but fixes an off by one error
-            model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+            //model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
         }
 
 
@@ -1027,6 +1027,7 @@ int main(int argc, char* argv[]) {
         paramsChanged |= ImGui::SliderInt("Slice Z", &currentSliceZ, 0, maxSliceIndexZ);
 
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
+
 
         ImGui::Separator();
         ImGui::TextWrapped("Mouse seeding settings");
