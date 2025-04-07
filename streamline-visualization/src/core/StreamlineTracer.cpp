@@ -97,7 +97,7 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int currentSliceX,
     return seeds;
 }
 
-std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int slice, glm::vec3 seedLoc, float seedRadius, float density)
+std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int sliceX, int sliceY, int sliceZ, int axis, glm::vec3 seedLoc, float seedRadius, float density)
 {
     std::vector<Point3D> seeds;
     
@@ -106,11 +106,17 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int slice, glm::vec3 s
         return seeds;
     }
 
+    if (!(axis == AXIS_X || axis == AXIS_Y || axis == AXIS_Z))
+    {
+        std::cerr << "Error: undefined axis" << std::endl;
+        return seeds;
+    }
+
     int dimX = vectorField->getDimX();
     int dimY = vectorField->getDimY();
     int dimZ = vectorField->getDimZ();
 
-    if (slice < 0 || slice >= dimZ)
+    if (sliceX < 0 || sliceX >= dimX || sliceY < 0 || sliceY >= dimY || sliceZ < 0 || sliceZ >= dimZ)
     {
         std::cerr << "Error: slice out of bounds" << std::endl;
         return seeds;
@@ -118,20 +124,44 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int slice, glm::vec3 s
 
     std::cout << "Generating mouse seeds" << std::endl;
 
-    if (!vectorField->isInBounds(seedLoc.x, seedLoc.y, slice)) return seeds;
-
-    if (!inZeroMask(glm::vec3(seedLoc.x, seedLoc.y, slice))) return seeds;
-    std::cout << "hello world" << std::endl;
-
+    if (axis == AXIS_X)
+    {
+        if (!vectorField->isInBounds(sliceX, seedLoc.y, seedLoc.z)) return seeds;
+        if (!inZeroMask(glm::vec3(sliceX, seedLoc.y, seedLoc.z))) return seeds;
+    }
+    else if (axis == AXIS_Y)
+    {
+        if (!vectorField->isInBounds(seedLoc.x, sliceY, seedLoc.z)) return seeds;
+        if (!inZeroMask(glm::vec3(seedLoc.x, sliceY, seedLoc.z))) return seeds;
+    }
+    else if (axis == AXIS_Z)
+    {
+        if (!vectorField->isInBounds(seedLoc.x, seedLoc.y, sliceZ)) return seeds;
+        if (!inZeroMask(glm::vec3(seedLoc.x, seedLoc.y, sliceZ))) return seeds;
+    }
     int maxSeeds = std::roundf(seedRadius) * roundf(density);
     seeds.reserve(maxSeeds); //pre allocate memory
+    
+
 
     for (size_t i = 0; i < maxSeeds; i++)
     {
         float r = seedRadius * std::sqrtf((float) std::rand() / RAND_MAX);
         float theta = (float) std::rand() / RAND_MAX * 2 * std::_Pi_val;
 
-        glm::vec3 seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), seedLoc.y + r * std::sinf(theta), slice);
+        glm::vec3 seedPoint;
+        if (axis == AXIS_X)
+        {
+            seedPoint = glm::vec3(sliceX, seedLoc.y + r * std::cosf(theta), seedLoc.z + r * std::sinf(theta));
+        }
+        else if (axis == AXIS_Y)
+        {
+            seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), sliceY, seedLoc.z + r * std::sinf(theta));
+        }
+        else if (axis == AXIS_Z)
+        {
+            seedPoint = glm::vec3(seedLoc.x + r * std::cosf(theta), seedLoc.y + r * std::sinf(theta), sliceZ);
+        }
 
         if (vectorField->isInBounds(seedPoint.x, seedPoint.y, seedPoint.z))
         {
@@ -141,6 +171,7 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int slice, glm::vec3 s
             }
         }
     }
+
     seeds.shrink_to_fit();
     return seeds;
 

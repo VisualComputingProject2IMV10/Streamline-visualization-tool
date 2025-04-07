@@ -58,7 +58,7 @@ public:
 
     std::vector<Point3D> generateSliceGridSeeds(int currentSliceX, int currentSliceY, int currentSliceZ, int axis);
 
-    std::vector<Point3D> generateMouseSeeds(int slice, glm::vec3 seedLoc, float seedRadius, float density);
+    std::vector<Point3D> generateMouseSeeds(int sliceX, int sliceY, int sliceZ, int axis, glm::vec3 seedLoc, float seedRadius, float density);
 
     std::vector<std::vector<Point3D>> StreamlineTracer::traceVectors(std::vector<Point3D> seeds);
 

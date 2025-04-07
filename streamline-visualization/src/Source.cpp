@@ -86,7 +86,7 @@ unsigned int sliceVAO = 0, sliceVBO = 0, sliceEBO = 0;
 int currentSliceX = 0;
 int currentSliceY = 0;
 int currentSliceZ = 0;
-int selectedAxis = AXIS_X; //0 = x, 1 = y, 2 = z
+int selectedAxis = AXIS_Y; //0 = x, 1 = y, 2 = z
 
 
 // Interactive seeding
@@ -237,6 +237,7 @@ void initImgPlane()
         0.0f, 2.0f * dimY, dimZ,    0.0f, 0.5f, 1.0f, //top left
         dimX, 2.0f * dimY, dimZ,    1.0f, 0.5f, 1.0f,  //top right
 
+
         //current axis X
         -2.0f * dimX, 0.0f, 0.0f,    0.5f, 0.0f, 0.0f, //bottom left
         -2.0f * dimX, 0.0f, dimZ,    0.5f, 0.0f, 1.0f, //bottom right
@@ -299,8 +300,8 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         //todo give different options for seeding
         if (useMouseSeeding)
         {
-            float seedRadius = std::max(dimX / 30.0f, dimY / 30.0f);
-            seeds = streamlineTracer->generateMouseSeeds(currentSliceZ, mouseSeedLoc, seedRadius, 50.0f);
+            float seedRadius = std::max(std::max(dimX / 30.0f, dimY / 30.0f), dimZ / 30.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis, mouseSeedLoc, seedRadius, 50.0f);
         }
         else
         {
@@ -349,11 +350,15 @@ void updatePVMatrices()
     // Initialize camera position based on data dimensions
     if (selectedAxis == AXIS_X)
     {
-        //not sure if this is quite right
         cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
         cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
         cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(0.0f, (float)dimY-1.0f, 0.0f, (float)dimZ-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        ////not sure if this is quite right
+        //cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
+        //cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
+        //cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        //projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
 
     }
     else if (selectedAxis == AXIS_Y)
@@ -361,14 +366,14 @@ void updatePVMatrices()
         cameraPos = glm::vec3(-dimX / 2.0f, -dimY, -dimZ / 2.0f);
         cameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
         cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimX, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(0.0f, (float)dimZ-1.0f, 0.0f, (float)dimX-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
     else if (selectedAxis == AXIS_Z)
     {
         cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
         cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
         cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(0.0f, (float)dimX-1.0f, 0.0f, (float)dimY-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
     else throw std::runtime_error("invalid axis selected");
 
@@ -425,12 +430,29 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     //correct the offset
     int scrWidth, scrHeight;
     glfwGetWindowSize(window, &scrWidth, &scrHeight);
-    xoffset *= (((float)dimX - 2 * xFov) / scrWidth);
-    yoffset *= (((float)dimY - 2 * xFov) / scrHeight);
 
     //move the camera since we use an ortho perspective
-    cameraPos.x -= xoffset;
-    cameraPos.y -= yoffset;
+    if (selectedAxis == AXIS_X)
+    {
+        xoffset *= (((float)dimY - 2 * xFov) / scrWidth);
+        yoffset *= (((float)dimZ - 2 * yFov) / scrHeight);
+        cameraPos.y -= xoffset;
+        cameraPos.z -= yoffset;
+    }
+    else if (selectedAxis == AXIS_Y)
+    {
+        xoffset *= (((float)dimX - 2 * xFov) / scrWidth);
+        yoffset *= (((float)dimZ - 2 * yFov) / scrHeight);
+        cameraPos.x -= xoffset;
+        cameraPos.z -= yoffset;
+    }
+    else if (selectedAxis == AXIS_Z)
+    {
+        xoffset *= (((float)dimX - 2 * xFov) / scrWidth);
+        yoffset *= (((float)dimY - 2 * yFov) / scrHeight);
+        cameraPos.x -= xoffset;
+        cameraPos.y -= yoffset;
+    }
 
     //update view matrix
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -612,15 +634,30 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 int scrWidth, scrHeight;
                 glfwGetWindowSize(window, &scrWidth, &scrHeight);
 
-                //todo may need to change this for the casting to work properly
                 float ndcX = (2.0f * xpos) / scrWidth - 1.0f;
                 float ndcY = 1.0f - (2.0f * ypos) / scrHeight;
 
-                glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
-                glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
-                ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
-                glm::vec4 ray_world = glm::inverse(view) * ray_eye;
-                mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+                if (selectedAxis == AXIS_X)
+                {
+
+                }
+                else if (selectedAxis == AXIS_Y)
+                {
+                    glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
+                    glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+                    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
+                    glm::vec4 ray_world = glm::inverse(view) * ray_eye;
+                    mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+                }
+                else if (selectedAxis == AXIS_Z)
+                {
+                    glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
+                    glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+                    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
+                    glm::vec4 ray_world = glm::inverse(view) * ray_eye;
+                    mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+                }
+                
             
                 regenerateStreamLines();
             }
