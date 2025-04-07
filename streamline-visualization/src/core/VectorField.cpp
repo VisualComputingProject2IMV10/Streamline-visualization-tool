@@ -8,7 +8,7 @@
 
 VectorField::VectorField(const char* filename) {
     float* vectorData;
-    short dimX, dimY, dimZ;
+    int dimX, dimY, dimZ;
 
     // Load vector data from file using the data reader
     if (readVectorData(filename, vectorData, dimX, dimY, dimZ) != EXIT_SUCCESS) {

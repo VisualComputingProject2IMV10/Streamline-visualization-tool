@@ -24,25 +24,12 @@
 #include <string>
 #include <cmath>
 
+#include "include/Constants.h"
 #include "include/Shader.h"
 #include "include/DataReader.h"
 #include "include/VectorField.h"
 #include "include/StreamlineTracer.h"
 #include "include/StreamlineRenderer.h"
-
-//------------------------------------------------------------------------------
-// Global variables
-//------------------------------------------------------------------------------
-
-//Paths
-const char* BRAIN_SCALAR_PATH = "data/brain-map.nii";
-const char* BRAIN_VECTOR_PATH = "data/brain-vectors.nii";
-const char* BRAIN_TENSORS_PATH = "data/brain-tensors.nii";
-const char* TOY_SCALAR_PATH = "data/toy-map.nii";
-const char* TOY_VECTOR_PATH = "data/toy-evec.nii";
-
-const char* BRAIN_DATASET = "Brain dataset";
-const char* TOY_DATASET = "Toy dataset";
 
 // Camera settings
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -54,14 +41,6 @@ float yFov = 0.0f;
 float lastX = 400.0f;
 float lastY = 300.0f;
 bool firstMouse = true;
-
-const bool USE_SMOOTH_BACKGROUND = false;
-const float NEAR_CAM_PLANE = 0.01f;
-const float FAR_CAM_PLANE = 1000.0f;
-
-const short AXIS_X = 0;
-const short AXIS_Y = 1;
-const short AXIS_Z = 2;
 
 //projection matrices
 glm::mat4 projection;
@@ -79,13 +58,11 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 //initial settings
-const char* currentDataset = TOY_DATASET;
-const char* currentScalarFile = TOY_SCALAR_PATH;
-const char* currentVectorFile = TOY_VECTOR_PATH;
+const char* currentDataset = BRAIN_DATASET;
+const char* currentScalarFile = BRAIN_SCALAR_PATH;
+const char* currentVectorFile = BRAIN_VECTOR_PATH;
 
 // Streamline parameters
-//int seedDensity = 5;
-
 float stepSize = 0.5f;
 float maxLength = 50.0f;
 int maxSteps = 1;
@@ -101,24 +78,25 @@ StreamlineRenderer* streamlineRenderer = nullptr;
 Shader* sliceShader = nullptr;
 Shader* streamlineShader = nullptr;
 Shader* glyphShader = nullptr;
-short dimX = 0, dimY = 0, dimZ = 0;
+int dimX = 0, dimY = 0, dimZ = 0;
 unsigned int texture = 0;
 unsigned int sliceVAO = 0, sliceVBO = 0, sliceEBO = 0;
+
 //threedimensional
 int currentSliceX = 0;
 int currentSliceY = 0;
 int currentSliceZ = 0;
-int selectedAxis = AXIS_Z; //0 = x, 1 = y, 2 = z
+int selectedAxis = AXIS_X; //0 = x, 1 = y, 2 = z
 
 
 // Interactive seeding
 glm::vec3 mouseSeedLoc;
 bool useMouseSeeding = false;
-
 bool paramsChanged = false; //for the gui
+bool viewAxisChanged = false;
 
-std::vector<std::vector<Point3D>> manualStreamlines;
-float manualSeedLineWidth = 3.0f;
+//std::vector<std::vector<Point3D>> manualStreamlines;
+//float manualSeedLineWidth = 3.0f;
 
 //------------------------------------------------------------------------------
 // Function declarations
@@ -135,6 +113,8 @@ void key_callback(GLFWwindow* window, int keyCode, int scancode, int actionType,
 // Data handling functions
 void seedStreamlinesAtPoint(float x, float y, float z);
 float sampleScalarData(float x, float y, float z);
+
+void updatePVMatrices();
 
 /**
  * Load the data files into memory and generate the corresponding 3d texture.
@@ -234,22 +214,7 @@ void loadCurrentDataFiles()
     currentSliceZ = dimZ / 2;
 
     // Initialize camera position based on data dimensions
-    if (selectedAxis == AXIS_X)
-    {
-        cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
-        projection = glm::ortho(0.0f, (float)dimY, 0.0f, (float)dimZ, NEAR_CAM_PLANE, FAR_CAM_PLANE);
-    }
-    else if (selectedAxis == AXIS_Y)
-    {
-        cameraPos = glm::vec3(-dimX / 2.0f, dimY, -dimZ / 2.0f);
-        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimZ, NEAR_CAM_PLANE, FAR_CAM_PLANE);
-    }
-    else if (selectedAxis == AXIS_Z)
-    {
-        cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
-        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
-    }
-    else throw std::runtime_error("invalid axis selected");
+    updatePVMatrices();
 }
 
 /**
@@ -259,17 +224,36 @@ void initImgPlane()
 {
     float vertexData[] =
     {
-        //position                    //texture coord: the slice is selected in the vertex shader
-         0.0f, 0.0f, -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
-         dimX, 0.0f, -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
-         0.0f, dimY, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
-         dimX, dimY, -2.0f * dimZ,    1.0f, 1.0f, 0.5f  //top right
+        //position                   //texture coord: the slice is selected in the vertex shader
+        //current axis Z
+        0.0f, 0.0f, -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
+        dimX, 0.0f, -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
+        0.0f, dimY, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
+        dimX, dimY, -2.0f * dimZ,    1.0f, 1.0f, 0.5f,  //top right
+
+        //current axis Y
+        0.0f, 2.0f * dimY, 0.0f,    0.0f, 0.5f, 0.0f, //bottom left
+        dimX, 2.0f * dimY, 0.0f,    1.0f, 0.5f, 0.0f, //bottom right
+        0.0f, 2.0f * dimY, dimZ,    0.0f, 0.5f, 1.0f, //top left
+        dimX, 2.0f * dimY, dimZ,    1.0f, 0.5f, 1.0f,  //top right
+
+        //current axis X
+        -2.0f * dimX, 0.0f, 0.0f,    0.5f, 0.0f, 0.0f, //bottom left
+        -2.0f * dimX, 0.0f, dimZ,    0.5f, 0.0f, 1.0f, //bottom right
+        -2.0f * dimX, dimY, 0.0f,    0.5f, 1.0f, 0.0f, //top left
+        -2.0f * dimX, dimY, dimZ,    0.5f, 1.0f, 1.0f  //top right
     };
 
     unsigned int vertexIndices[] =
     {
         0, 1, 2,
-        1, 2, 3
+        1, 2, 3,
+        0xFFFF,
+        4, 5, 6,
+        5, 6, 7,
+        0xFFFF,
+        8, 9, 10,
+        9, 10, 11
     };
     
     //init buffers
@@ -320,7 +304,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         }
         else
         {
-            seeds = streamlineTracer->generateSliceGridSeeds(currentSliceZ);
+            seeds = streamlineTracer->generateSliceGridSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis);
         }
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
@@ -358,6 +342,38 @@ void regenerateStreamLines()
         std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
         streamlineRenderer->prepareStreamlines(streamlines);
     }
+}
+
+void updatePVMatrices()
+{
+    // Initialize camera position based on data dimensions
+    if (selectedAxis == AXIS_X)
+    {
+        //not sure if this is quite right
+        cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
+        cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
+        cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+
+    }
+    else if (selectedAxis == AXIS_Y)
+    {
+        cameraPos = glm::vec3(-dimX / 2.0f, -dimY, -dimZ / 2.0f);
+        cameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
+        cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+        projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimX, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else if (selectedAxis == AXIS_Z)
+    {
+        cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
+        cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+        cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        projection = glm::ortho(0.0f, (float)dimX, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else throw std::runtime_error("invalid axis selected");
+
+    //initialize view matrix
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
 /**
@@ -677,9 +693,6 @@ void switchDataSet()
     streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, maxLength, maxAngle); //TODO should this be a pointer?
     streamlineRenderer = new StreamlineRenderer(streamlineShader);
 
-    //initialize view matrix
-    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
     //generate the initial streamlines
     std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
     streamlineRenderer->prepareStreamlines(streamlines);
@@ -779,7 +792,6 @@ int main(int argc, char* argv[]) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-dimX/2.0f, -dimY/2.0f, -dimZ/2.0f));
         model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f)); // Adjust scale if needed
 
         // Create model matrix for streamlines
         glm::mat4 streamlineModel = glm::mat4(1.0f);
@@ -798,15 +810,30 @@ int main(int argc, char* argv[]) {
             // Render background slice
             sliceShader->use();
             glBindTexture(GL_TEXTURE_3D, texture);
+            sliceShader->setInt("selectedAxis", selectedAxis);
             sliceShader->setMat4("projection", projection); //TODO if this is an inefficient operation we should only set the projection matrix at the start
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
 
-            float currentSliceZF = (float)currentSliceZ / ((float)dimZ - 1.0f);
-            sliceShader->setFloat("currentSliceZ", currentSliceZF);
+
+            if (selectedAxis == AXIS_Z)
+            {
+                float currentSliceZF = (float)currentSliceZ / ((float)dimZ - 1.0f);
+                sliceShader->setFloat("currentSlice", currentSliceZF);
+            }
+            else if (selectedAxis == AXIS_Y)
+            {
+                float currentSliceYF = (float)currentSliceY / ((float)dimY - 1.0f);
+                sliceShader->setFloat("currentSlice", currentSliceYF);
+            }
+            else if (selectedAxis == AXIS_X)
+            {
+                float currentSliceXF = (float)currentSliceX / ((float)dimX - 1.0f);
+                sliceShader->setFloat("currentSlice", currentSliceXF);
+            }
 
             glBindVertexArray(sliceVAO);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, 20, GL_UNSIGNED_INT, 0);
 
             // Set up depth for streamlines to appear above slice
             glEnable(GL_DEPTH_TEST);
@@ -911,8 +938,25 @@ int main(int argc, char* argv[]) {
         ImGui::TextWrapped("Coming soon: tensor eigenvector extraction");
 
         // Slice position control
-        int maxSliceIndex = dimZ-1;//(sliceAxis == 0) ? dimX-1 : ((sliceAxis == 1) ? dimY-1 : dimZ-1);
-        paramsChanged |= ImGui::SliderInt("Slice", &currentSliceZ, 0, maxSliceIndex);
+        ImGui::TextWrapped("View axis");
+        
+        viewAxisChanged |= ImGui::RadioButton("axis_x", &selectedAxis, AXIS_X); ImGui::SameLine();
+        viewAxisChanged |= ImGui::RadioButton("axis_y", &selectedAxis, AXIS_Y); ImGui::SameLine();
+        viewAxisChanged |= ImGui::RadioButton("axis_z", &selectedAxis, AXIS_Z);
+        paramsChanged |= viewAxisChanged;
+        if (viewAxisChanged)
+        {
+            std::cout << "hello world" << std::endl;
+            updatePVMatrices();
+            viewAxisChanged = false;
+        }
+
+        int maxSliceIndexX = dimX - 1;
+        int maxSliceIndexY = dimY - 1;
+        int maxSliceIndexZ = dimZ - 1;
+        paramsChanged |= ImGui::SliderInt("Slice X", &currentSliceX, 0, maxSliceIndexX);
+        paramsChanged |= ImGui::SliderInt("Slice Y", &currentSliceY, 0, maxSliceIndexY);
+        paramsChanged |= ImGui::SliderInt("Slice Z", &currentSliceZ, 0, maxSliceIndexZ);
 
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
 

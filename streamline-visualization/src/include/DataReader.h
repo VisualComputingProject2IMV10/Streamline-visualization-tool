@@ -20,7 +20,7 @@
  * @param dimZ Output parameter for Z dimension
  * @return EXIT_SUCCESS on success, EXIT_FAILURE on error
  */
-int readData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ);
+int readData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ);
 
 /**
  * @brief Print a slice of 3D data to console (for debugging)
@@ -43,7 +43,7 @@ void printSlice(float* data, int slice, int x, int y, int z);
  * @param dimZ Output parameter for Z dimension
  * @return EXIT_SUCCESS on success, EXIT_FAILURE on error
  */
-int readVectorData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ);
+int readVectorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ);
 
 /**
  * @brief Read diffusion tensor data from a NIFTI file
@@ -55,4 +55,4 @@ int readVectorData(const char* filename, float*& data, short& dimX, short& dimY,
  * @param dimZ Output parameter for Z dimension
  * @return EXIT_SUCCESS on success, EXIT_FAILURE on error
  */
-int readTensorData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ);
+int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ);

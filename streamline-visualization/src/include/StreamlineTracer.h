@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include "VectorField.h"
+#include "Constants.h"
 
 #include <glm/vec3.hpp>
 #include <glm/vector_relational.hpp>
@@ -55,7 +56,7 @@ public:
      */
     std::vector<std::vector<Point3D>> traceAllStreamlines(const std::vector<Point3D>& seeds);
 
-    std::vector<Point3D> generateSliceGridSeeds(int slice);
+    std::vector<Point3D> generateSliceGridSeeds(int currentSliceX, int currentSliceY, int currentSliceZ, int axis);
 
     std::vector<Point3D> generateMouseSeeds(int slice, glm::vec3 seedLoc, float seedRadius, float density);
 

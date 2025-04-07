@@ -4,7 +4,7 @@
 #include <cstring>
 #include "../extra/nifti1.h"
 
-int readData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ) {
+int readData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ) {
     // Open NIFTI file
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
@@ -78,7 +78,7 @@ void printSlice(float* data, int slice, int dimX, int dimY, int dimZ) {
     }
 }
 
-int readTensorData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ) {
+int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ) {
     // Open NIFTI file
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
@@ -143,7 +143,7 @@ int readTensorData(const char* filename, float*& data, short& dimX, short& dimY,
     return EXIT_SUCCESS;
 }
 
-int readVectorData(const char* filename, float*& data, short& dimX, short& dimY, short& dimZ) {
+int readVectorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ) {
     // Open NIFTI file
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {

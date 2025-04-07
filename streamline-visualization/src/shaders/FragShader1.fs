@@ -11,10 +11,23 @@ out vec4 FragColor;
 uniform sampler3D volumeTexture;   // Anatomical data
 
 uniform float currentSlice; //the texture coord of the current slice
+uniform int selectedAxis;
 
 void main()
 {
-    vec3 newTexCoord = vec3(texCoord.st, currentSlice);
+    vec3 newTexCoord;
+    if (selectedAxis == 2)
+    {
+        newTexCoord = vec3(texCoord.st, currentSlice);
+    } 
+    else if (selectedAxis == 1)
+    {
+        newTexCoord = vec3(texCoord.s, currentSlice, texCoord.p);
+    } 
+    else //selectedAxis == 0
+    {
+        newTexCoord = vec3(currentSlice, texCoord.tp);
+    }
 
     // Sample intensity from volumetric texture
     float intensity = texture(volumeTexture, newTexCoord).r;

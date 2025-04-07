@@ -18,12 +18,20 @@ StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps, fl
     this->zeroMask = field->getZeroMask(field->getDimX(), field->getDimY(), field->getDimZ()); //for quicker access
 }
 
-std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int slice)
+std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int currentSliceX, int currentSliceY, int currentSliceZ, int axis)
 {
+    std::cout << "hello world" << std::endl;
     std::vector<Point3D> seeds;
 
-    if (!vectorField) {
+    if (!vectorField) 
+    {
         std::cerr << "Error: Vector field is nullptr in generateUnifiedBrainSeeds" << std::endl;
+        return seeds;
+    }
+
+    if (!(axis == AXIS_X || axis == AXIS_Y || axis == AXIS_Z))
+    {
+        std::cerr << "Error: undefined axis" << std::endl;
         return seeds;
     }
 
@@ -31,7 +39,7 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int slice)
     int dimY = vectorField->getDimY();
     int dimZ = vectorField->getDimZ();
 
-    if (slice < 0 || slice >= dimZ)
+    if (currentSliceX < 0 || currentSliceX >= dimX || currentSliceY < 0 || currentSliceY >= dimY || currentSliceZ < 0 || currentSliceZ >= dimZ)
     {
         std::cerr << "Error: slice out of bounds" << std::endl;
         return seeds;
@@ -40,15 +48,46 @@ std::vector<Point3D> StreamlineTracer::generateSliceGridSeeds(int slice)
     std::cout << "Generating simple grid slice seeds" << std::endl;
 
     //preallocate max memory needed for seeds
-    seeds.reserve(dimX * dimY);
-
-    for (int x = 0; x < dimX; x++)
+    if      (axis == AXIS_X) seeds.reserve(dimY * dimZ);
+    else if (axis == AXIS_Y) seeds.reserve(dimX * dimZ);
+    else if (axis == AXIS_Z) seeds.reserve(dimX * dimY);
+    std::cout << axis << std::endl;
+    if (axis == AXIS_X)
     {
         for (int y = 0; y < dimY; y++)
         {
-            if (this->zeroMask[x + y * dimX + slice * dimX * dimY])
+            for (int z = 0; z < dimZ; z++)
             {
-                seeds.push_back(Point3D(x, y, slice));
+                if (this->zeroMask[currentSliceX + y * dimX + z * dimX * dimY])
+                {
+                    seeds.push_back(Point3D(currentSliceX, y, z));
+                }
+            }
+        }
+    }
+    else if (axis == AXIS_Y)
+    {
+        for (int x = 0; x < dimX; x++)
+        {
+            for (int z = 0; z < dimZ; z++)
+            {
+                if (this->zeroMask[x + currentSliceY * dimX + z * dimX * dimY])
+                {
+                    seeds.push_back(Point3D(x, currentSliceY, z));
+                }
+            }
+        }
+    }
+    else if (axis == AXIS_Z)
+    {
+        for (int x = 0; x < dimX; x++)
+        {
+            for (int y = 0; y < dimY; y++)
+            {
+                if (this->zeroMask[x + y * dimX + currentSliceZ * dimX * dimY])
+                {
+                    seeds.push_back(Point3D(x, y, currentSliceZ));
+                }
             }
         }
     }

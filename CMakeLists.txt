@@ -28,7 +28,7 @@ add_executable(VCP
         # ImGui backend files
         imgui/backends/imgui_impl_glfw.cpp
         imgui/backends/imgui_impl_opengl3.cpp
- "streamline-visualization/src/core/MouseSampler.cpp")
+ )
 
 add_custom_command(
     TARGET VCP POST_BUILD
