@@ -347,33 +347,31 @@ void regenerateStreamLines()
 
 void updatePVMatrices()
 {
+    //can keep a similar zoom level axis view, so long as the dimensions are al fairly similar
+    xFov = 0.0f;
+    yFov = 0.0f;
+
     // Initialize camera position based on data dimensions
     if (selectedAxis == AXIS_X)
     {
         cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
         cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
         cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        projection = glm::ortho(0.0f, (float)dimY-1.0f, 0.0f, (float)dimZ-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
-        ////not sure if this is quite right
-        //cameraPos = glm::vec3(dimX, -dimY / 2.0f, -dimZ / 2.0f);
-        //cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
-        //cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        //projection = glm::ortho(0.0f, (float)dimZ, 0.0f, (float)dimY, NEAR_CAM_PLANE, FAR_CAM_PLANE);
-
+        projection = glm::ortho(xFov, (float)dimY - xFov, yFov, (float)dimZ - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
     else if (selectedAxis == AXIS_Y)
     {
         cameraPos = glm::vec3(-dimX / 2.0f, -dimY, -dimZ / 2.0f);
         cameraFront = glm::vec3(0.0f, 1.0f, 0.0f);
         cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
-        projection = glm::ortho(0.0f, (float)dimZ-1.0f, 0.0f, (float)dimX-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(xFov, (float)dimZ - xFov, yFov, (float)dimX - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
     else if (selectedAxis == AXIS_Z)
     {
         cameraPos = glm::vec3(-dimX / 2.0f, -dimY / 2.0f, dimZ);
         cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
         cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-        projection = glm::ortho(0.0f, (float)dimX-1.0f, 0.0f, (float)dimY-1.0f, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(xFov, (float)dimX - xFov, yFov, (float)dimY - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
     else throw std::runtime_error("invalid axis selected");
 
@@ -637,24 +635,21 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                 float ndcX = (2.0f * xpos) / scrWidth - 1.0f;
                 float ndcY = 1.0f - (2.0f * ypos) / scrHeight;
 
+                glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
+                glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
+                ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
+                glm::vec4 ray_world = glm::inverse(view) * ray_eye;
+
                 if (selectedAxis == AXIS_X)
                 {
-
+                    mouseSeedLoc = glm::vec3(ray_world.x, ray_world.y + dimY / 2.0f, ray_world.z + dimZ / 2.0f);
                 }
                 else if (selectedAxis == AXIS_Y)
                 {
-                    glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
-                    glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
-                    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
-                    glm::vec4 ray_world = glm::inverse(view) * ray_eye;
-                    mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
+                    mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y, ray_world.z + dimZ / 2.0f);
                 }
                 else if (selectedAxis == AXIS_Z)
                 {
-                    glm::vec4 ray_clip = glm::vec4(ndcX, ndcY, -1.0f, 1.0f); //homogenous clip space coords of the ray
-                    glm::vec4 ray_eye = glm::inverse(projection) * ray_clip;
-                    ray_eye = glm::vec4(ray_eye.x, ray_eye.y, -1.0f, 1.0f); //only the x and y are important and we want the ray to point into the screen
-                    glm::vec4 ray_world = glm::inverse(view) * ray_eye;
                     mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
                 }
                 
@@ -706,10 +701,27 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     yFov -= (float)yoffset * 2.0f;
 
     //update projection matrix
-    if (xFov > ((float) dimX / 2.0f) - 1.0f) xFov = ((float)dimX / 2.0f) - 1.0f;
-    if (yFov > ((float) dimY / 2.0f) - 1.0f) yFov = ((float)dimY / 2.0f) - 1.0f;
+    if (selectedAxis == AXIS_X)
+    {
+        if (xFov > ((float)dimY / 2.0f) - 1.0f) xFov = ((float)dimY / 2.0f) - 1.0f;
+        if (yFov > ((float)dimZ / 2.0f) - 1.0f) yFov = ((float)dimZ / 2.0f) - 1.0f;
 
-    projection = glm::ortho(0.0f + xFov, (float)dimX - xFov, 0.0f + yFov, (float)dimY - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+        projection = glm::ortho(xFov, (float)dimY - xFov, yFov, (float)dimZ - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else if (selectedAxis == AXIS_Y)
+    {
+        if (xFov > ((float)dimZ / 2.0f) - 1.0f) xFov = ((float)dimZ / 2.0f) - 1.0f;
+        if (yFov > ((float)dimX / 2.0f) - 1.0f) yFov = ((float)dimX / 2.0f) - 1.0f;
+
+        projection = glm::ortho(xFov, (float)dimZ - xFov, yFov, (float)dimX - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
+    else if (selectedAxis == AXIS_Z)
+    {
+        if (xFov > ((float) dimX / 2.0f) - 1.0f) xFov = ((float)dimX / 2.0f) - 1.0f;
+        if (yFov > ((float) dimY / 2.0f) - 1.0f) yFov = ((float)dimY / 2.0f) - 1.0f;
+
+        projection = glm::ortho(xFov, (float)dimX - xFov, yFov, (float)dimY - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
+    }
 
 }
 
@@ -827,13 +839,31 @@ int main(int argc, char* argv[]) {
 
         //image plane model matrix
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-dimX/2.0f, -dimY/2.0f, -dimZ/2.0f));
-        model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
+        model = glm::translate(model, glm::vec3((float)-dimX / 2.0f, (float)-dimY / 2.0f, (float)-dimZ / 2.0f));
+
+        if (selectedAxis == AXIS_X)
+        {
+            model = glm::translate(model, glm::vec3(0.0f, -0.5f, -0.5f));
+        }
+        else if (selectedAxis == AXIS_Y) 
+        {
+            model = glm::translate(model, glm::vec3(-0.5f, 0.0f, -0.5f));
+            //a bit hacky, but fixes an off by one error
+            model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+        else if (selectedAxis == AXIS_Z)
+        {
+            model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
+            //a bit hacky, but fixes an off by one error
+            model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+
+
 
         // Create model matrix for streamlines
         glm::mat4 streamlineModel = glm::mat4(1.0f);
-        streamlineModel = glm::translate(streamlineModel, glm::vec3(-dimX / 2.0f, -dimY / 2.0f, -dimZ / 2.0f));
-        streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
+        streamlineModel = glm::translate(streamlineModel, glm::vec3((float)-dimX / 2.0f, (float)-dimY / 2.0f, (float)-dimZ / 2.0f));
+        //streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
 
         // Set up depth testing
         glEnable(GL_DEPTH_TEST);

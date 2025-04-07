@@ -146,6 +146,7 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int sliceX, int sliceY
 
     for (size_t i = 0; i < maxSeeds; i++)
     {
+        //todo make it spherical
         float r = seedRadius * std::sqrtf((float) std::rand() / RAND_MAX);
         float theta = (float) std::rand() / RAND_MAX * 2 * std::_Pi_val;
 
