@@ -94,6 +94,8 @@ glm::vec3 mouseSeedLoc;
 bool useMouseSeeding = false;
 bool paramsChanged = false; //for the gui
 bool viewAxisChanged = false;
+int mouseSeedDensity = 100;
+float mouseSeedRadius = 5;
 
 //std::vector<std::vector<Point3D>> manualStreamlines;
 //float manualSeedLineWidth = 3.0f;
@@ -300,8 +302,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         //todo give different options for seeding
         if (useMouseSeeding)
         {
-            float seedRadius = std::max(std::max(dimX / 30.0f, dimY / 30.0f), dimZ / 30.0f);
-            seeds = streamlineTracer->generateMouseSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis, mouseSeedLoc, seedRadius, 50.0f);
+            seeds = streamlineTracer->generateMouseSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis, mouseSeedLoc, mouseSeedRadius, mouseSeedDensity);
         }
         else
         {
@@ -1026,6 +1027,14 @@ int main(int argc, char* argv[]) {
         paramsChanged |= ImGui::SliderInt("Slice Z", &currentSliceZ, 0, maxSliceIndexZ);
 
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
+
+        ImGui::Separator();
+        ImGui::TextWrapped("Mouse seeding settings");
+        ImGui::TextWrapped("Seed density");
+        ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 0, 500);
+
+        ImGui::TextWrapped("Seed radius");
+        paramsChanged |= ImGui::SliderFloat("##SeedRadius", &mouseSeedRadius, 0.01f, 20.0f);
 
         ImGui::BeginDisabled(!paramsChanged);
         if (ImGui::Button("Regenerate Streamlines")) {
