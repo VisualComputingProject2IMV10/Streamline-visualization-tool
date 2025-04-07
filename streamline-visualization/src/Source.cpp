@@ -1031,11 +1031,12 @@ int main(int argc, char* argv[]) {
         ImGui::Separator();
         ImGui::TextWrapped("Mouse seeding settings");
         ImGui::TextWrapped("Seed density");
-        ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 0, 500);
+        paramsChanged |= ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 0, 500);
 
         ImGui::TextWrapped("Seed radius");
         paramsChanged |= ImGui::SliderFloat("##SeedRadius", &mouseSeedRadius, 0.01f, 20.0f);
 
+        ImGui::Separator();
         ImGui::BeginDisabled(!paramsChanged);
         if (ImGui::Button("Regenerate Streamlines")) {
             regenerateStreamLines();
