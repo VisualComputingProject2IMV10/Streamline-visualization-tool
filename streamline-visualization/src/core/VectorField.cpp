@@ -58,6 +58,7 @@ void VectorField::getVector(int x, int y, int z, float& vx, float& vy, float& vz
 void VectorField::interpolateVector(float x, float y, float z, float& vx, float& vy, float& vz) const {
     // If outside bounds, return zero vector
     if (!isInBounds(x, y, z)) {
+        std::cout << "interpolated vector out of bounds" << std::endl;
         vx = vy = vz = 0.0f;
         return;
     }

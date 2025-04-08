@@ -354,6 +354,8 @@ glm::vec3 StreamlineTracer::eulerIntegrate(glm::vec3 pos, float step)
     glm::vec3 vectorAtPos;
     vectorField->interpolateVector(pos.x, pos.y, pos.z, vectorAtPos.x, vectorAtPos.y, vectorAtPos.z);
 
+    //printf("sampled vector: Vector: (%.2f, %.2f, %.2f)\n", vectorAtPos.x, vectorAtPos.y, vectorAtPos.z);
+
     // Euler integration: p(t+h) = p(t) + h*v(t)
     glm::vec3 next = pos + step * glm::normalize(vectorAtPos);
     return next;
@@ -417,6 +419,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
             return path;
         }
 
+
         //check if the next point is still in bounds
         if (!inZeroMask(nextPos))
         {
@@ -424,18 +427,29 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
             return path;
         }
 
+        //printf("seed Vector: (%.2f, %.2f, %.2f)\n", prevPos.x, prevPos.y, prevPos.z);
+        //printf("current Vector: (%.2f, %.2f, %.2f) direction: %i\n", currentPos.x, currentPos.y, currentPos.z, direction);
+        //printf("next Vector: (%.2f, %.2f, %.2f)\n\n", nextPos.x, nextPos.y, nextPos.z);
+
         glm::vec3 prevDir = glm::normalize(currentPos - prevPos);
         glm::vec3 newDir = glm::normalize(nextPos - currentPos);
 
+        //printf("previous vector: (%.2f, %.2f, %.2f)\n", prevDir.x, prevDir.y, prevDir.z);
+        //printf("new vector: (%.2f, %.2f, %.2f)\n", newDir.x, newDir.y, newDir.z);
+
         float cosAngle = glm::dot(prevDir, newDir); //cos(a) = (u * v) / (|u| * |v|)
+        //std::cout << "Cosangle: " << cosAngle << std::endl;
         //check if the angle between the vectors is too big
         //TODO something might be wrong with the angle constraint
-        if (std::acosf(cosAngle) > this->maxAngle)
+        //printf("Vector: (%.2f, %.2f, %.2f) direction: %i\n", nextPos.x, nextPos.y, nextPos.z, direction);
+        //std::cout << "Angle between vectors: " << std::acosf(cosAngle) << " max angle: " << this->maxAngle << std::endl;
+        if (!(std::acosf(cosAngle) < this->maxAngle) && false)
         {
             path.shrink_to_fit(); //release unused memory
             return path;
         }
 
+        //std::cout << "direction: " << direction << std::endl;
         path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
 
         prevPos = currentPos;

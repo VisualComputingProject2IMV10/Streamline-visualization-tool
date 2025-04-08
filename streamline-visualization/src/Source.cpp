@@ -50,22 +50,22 @@ glm::mat4 view;
 float* globalScalarData = nullptr;
 int scalarDimX = 0, scalarDimY = 0, scalarDimZ = 0;
 
-const unsigned int SCR_WIDTH = 1000;
-const unsigned int SCR_HEIGHT = 1000;
+const unsigned int SCR_WIDTH = 900;
+const unsigned int SCR_HEIGHT = 900;
 
 // Timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 //initial settings
-const char* currentDataset = BRAIN_DATASET;
-const char* currentScalarFile = BRAIN_SCALAR_PATH;
-const char* currentVectorFile = BRAIN_VECTOR_PATH;
+const char* currentDataset = TOY_DATASET;
+const char* currentScalarFile = TOY_SCALAR_PATH;
+const char* currentVectorFile = TOY_VECTOR_PATH;
 
 // Streamline parameters
 float stepSize = 0.5f;
 float maxLength = 50.0f;
-int maxSteps = 1;
+int maxSteps = 3;
 float maxAngleDegrees = 45;
 float maxAngle = maxAngleDegrees * (std::_Pi_val / 180); //about 45 degrees
 const char* integrationMethod = StreamlineTracer::RUNGE_KUTTA_2ND_ORDER;
@@ -87,7 +87,7 @@ unsigned int sliceVAO = 0, sliceVBO = 0, sliceEBO = 0;
 int currentSliceX = 0;
 int currentSliceY = 0;
 int currentSliceZ = 0;
-int selectedAxis = AXIS_Y; //0 = x, 1 = y, 2 = z
+int selectedAxis = AXIS_Z; //0 = x, 1 = y, 2 = z
 
 
 // Interactive seeding
@@ -309,7 +309,7 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         {
             seeds = streamlineTracer->generateSliceGridSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis);
             //todo remove after testing
-            //seeds = { Point3D(32.0f, 15.0f, 1.0f) };
+            //seeds = { Point3D(19.0f, 21.0f, 1.0f) };
         }
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
@@ -658,7 +658,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                     mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
                 }
                 
-            
+                printf("Vector: (%.2f, %.2f, %.2f)\n", mouseSeedLoc.x, mouseSeedLoc.y, mouseSeedLoc.z);
                 regenerateStreamLines();
             }
 
