@@ -6,9 +6,9 @@
 // External function declaration for scalar data sampling (implemented in Source.cpp)
 extern float sampleScalarData(float x, float y, float z);
 
-StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps, float maxLen, float maxAngle)
+StreamlineTracer::StreamlineTracer(VectorField* field, float step, int steps, float maxLen, float maxAngle, const char* integrationMethod)
     : vectorField(field), stepSize(step), maxSteps(steps),
-      maxLength(maxLen), maxAngle(maxAngle) {
+      maxLength(maxLen), maxAngle(maxAngle), integrationMethod(integrationMethod) {
     // Validate input parameters
     if (!field) {
         std::cerr << "Error: Null vector field provided to StreamlineTracer" << std::endl;
@@ -234,7 +234,7 @@ Point3D StreamlineTracer::eulerIntegrate1(const Point3D& pos, float step) {
     );
 }
 
-Point3D StreamlineTracer::rk4Integrate(const Point3D& pos, float step) {
+Point3D StreamlineTracer::rk4Integrate1(const Point3D& pos, float step) {
     // RK4 integration provides higher accuracy than Euler method
 
     // k1 = v(p)
@@ -334,6 +334,20 @@ bool StreamlineTracer::inZeroMask(glm::vec3 v)
     return this->zeroMask[x + y * this->vectorField->getDimX() + z * this->vectorField->getDimX() * this->vectorField->getDimY()];
 }
 
+glm::vec3 StreamlineTracer::rk2Integrate(glm::vec3 pos, float step)
+{
+    //x0 = pos
+    glm::vec3 vx0; //v(x0)
+    vectorField->interpolateVector(pos.x, pos.y, pos.z, vx0.x, vx0.y, vx0.z);
+    glm::vec3 x1 = pos + 0.5f * step * glm::normalize(vx0);//midpoint
+
+    glm::vec3 vx1;
+    vectorField->interpolateVector(x1.x, x1.y, x1.z, vx1.x, vx1.y, vx1.z); //get the vector at the midpoint
+
+    glm::vec3 next = x1 + 0.5f * step * glm::normalize(vx1);
+    return next;
+}
+
 glm::vec3 StreamlineTracer::eulerIntegrate(glm::vec3 pos, float step)
 {
     //do first step manually so the loop can check angles more easily
@@ -354,10 +368,24 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
 
     glm::vec3 currentPos = glm::vec3(seed.x, seed.y, seed.z); //convert to glm vector for easier algebra
 
-    glm::vec3 nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+    glm::vec3 nextPos;
+    if (strcmp(this->integrationMethod, StreamlineTracer::EULER) == 0) //c string comparison
+    {
+        nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+    }
+    else if (strcmp(this->integrationMethod, StreamlineTracer::RUNGE_KUTTA_2ND_ORDER) == 0)
+    {
+        nextPos = rk2Integrate(currentPos, this->stepSize * direction);
+    }
+    else
+    {
+        std::cerr << "ERROR: invalid integration method given." << std::endl;
+        path.shrink_to_fit();
+        return path;
+    }
 
     //check if the seed and next position are valid
-    if (inZeroMask(nextPos) || !inZeroMask(currentPos))
+    if (inZeroMask(nextPos) && inZeroMask(currentPos))
     {
         path.push_back(Point3D(nextPos.x, nextPos.y, nextPos.z));
     }
@@ -371,9 +399,23 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
     currentPos = nextPos;
 
     //calculate the rest of the path
-    for (int step = 1; step < maxSteps && totalLength < maxLength; step++)
+    for (int step = 1; step < maxSteps/* && totalLength < maxLength*/; step++)
     {
-        nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+        glm::vec3 nextPos;
+        if (strcmp(this->integrationMethod, StreamlineTracer::EULER) == 0)
+        {
+            nextPos = eulerIntegrate(currentPos, this->stepSize * direction);
+        }
+        else if (strcmp(this->integrationMethod, StreamlineTracer::RUNGE_KUTTA_2ND_ORDER) == 0)
+        {
+            nextPos = rk2Integrate(currentPos, this->stepSize * direction);
+        }
+        else
+        {
+            std::cerr << "ERROR: invalid integration method given." << std::endl;
+            path.shrink_to_fit();
+            return path;
+        }
 
         //check if the next point is still in bounds
         if (!inZeroMask(nextPos))

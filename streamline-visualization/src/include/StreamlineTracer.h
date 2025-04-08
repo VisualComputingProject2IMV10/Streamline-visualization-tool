@@ -38,7 +38,7 @@ public:
      * @param minMag Minimum vector magnitude before termination
      * @param maxLen Maximum length of a streamline
      */
-    StreamlineTracer(VectorField* field, float step = 0.5f, int steps = 2000, float maxLen = 100.0f, float maxAngle = 0.01f);
+    StreamlineTracer(VectorField* field, float step = 0.5f, int steps = 2000, float maxLen = 100.0f, float maxAngle = 0.01f, const char* integrationMethod = StreamlineTracer::RUNGE_KUTTA_2ND_ORDER);
 
     /**
      * @brief Trace a single streamline from a seed point
@@ -66,6 +66,11 @@ public:
     int maxSteps;              ///< Maximum number of steps per streamline
     float maxLength;           ///< Maximum length of a streamline
     float maxAngle;         ///< Cosine of the max angle between vectors in the integration step
+    const char* integrationMethod;
+
+    //constants for the integration methods
+    static constexpr char* const EULER = "Euler";
+    static constexpr char* const RUNGE_KUTTA_2ND_ORDER = "Runge Kutta 2nd order";
 
 private:
     VectorField* vectorField;  ///< Reference to the vector field
@@ -95,10 +100,11 @@ private:
     Point3D eulerIntegrate1(const Point3D& pos, float step);
 
     /**
-     * @brief Perform 4th-order Runge-Kutta integration step
+     * @brief Perform 2th-order Runge-Kutta integration step
      * @param pos Current position
      * @param step Step size (can be negative for backward tracing)
      * @return Next position
      */
-    Point3D rk4Integrate(const Point3D& pos, float step);
+    glm::vec3 rk2Integrate(glm::vec3 pos, float step);
+    Point3D rk4Integrate1(const Point3D& pos, float step);
 };

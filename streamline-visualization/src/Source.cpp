@@ -68,6 +68,7 @@ float maxLength = 50.0f;
 int maxSteps = 1;
 float maxAngleDegrees = 45;
 float maxAngle = maxAngleDegrees * (std::_Pi_val / 180); //about 45 degrees
+const char* integrationMethod = StreamlineTracer::RUNGE_KUTTA_2ND_ORDER;
 
 float lineWidth = 2.0f;
 
@@ -307,6 +308,8 @@ std::vector<std::vector<Point3D>> generateStreamlines()
         else
         {
             seeds = streamlineTracer->generateSliceGridSeeds(currentSliceX, currentSliceY, currentSliceZ, selectedAxis);
+            //todo remove after testing
+            //seeds = { Point3D(32.0f, 15.0f, 1.0f) };
         }
         std::cout << "Seeded " << seeds.size() << " seeds from the current slice" << std::endl;
     
@@ -338,6 +341,7 @@ void regenerateStreamLines()
         streamlineTracer->maxLength = maxLength;
         streamlineTracer->maxSteps = maxSteps;
         streamlineTracer->stepSize = stepSize;
+        streamlineTracer->integrationMethod = integrationMethod;
     }
 
     if (vectorField && streamlineRenderer) {
@@ -740,7 +744,7 @@ void switchDataSet()
     initImgPlane();
 
     //Initialize a streamline tracer and renderer
-    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, maxLength, maxAngle); //TODO should this be a pointer?
+    streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, maxLength, maxAngle, integrationMethod); //TODO should this be a pointer?
     streamlineRenderer = new StreamlineRenderer(streamlineShader);
 
     //generate the initial streamlines
@@ -934,8 +938,6 @@ int main(int argc, char* argv[]) {
         ImGui::Separator();
         ImGui::Text("Data Selection");
 
-
-        //TODO select scalar and vector data together
         if (ImGui::BeginCombo("Dataset", currentDataset))
         {
             if (ImGui::Selectable(TOY_SCALAR_PATH))
@@ -981,7 +983,7 @@ int main(int argc, char* argv[]) {
         
         // Max length slider
         ImGui::TextWrapped("Max streamline length");
-        paramsChanged |= ImGui::SliderFloat("##maxLength", &maxLength, 1.0f, 100.0f, "%.1f");
+        paramsChanged |= ImGui::SliderFloat("##maxLength", &maxLength, 1.0f, 1000.0f, "%.1f");
         
         // Max steps slider
         ImGui::TextWrapped("Max integration steps");
@@ -995,6 +997,30 @@ int main(int argc, char* argv[]) {
             paramsChanged = true;
         }
 
+        //integration method
+        ImGui::TextWrapped("Integration method");
+        if (ImGui::BeginCombo("##Integration method", integrationMethod))
+        {
+            if (ImGui::Selectable(StreamlineTracer::EULER))
+            {
+                if (integrationMethod != StreamlineTracer::EULER)
+                {
+                    integrationMethod = StreamlineTracer::EULER;
+                    paramsChanged = true;
+                }
+            }
+
+            if (ImGui::Selectable(StreamlineTracer::RUNGE_KUTTA_2ND_ORDER))
+            {
+                if (integrationMethod != StreamlineTracer::RUNGE_KUTTA_2ND_ORDER)
+                {
+                    integrationMethod = StreamlineTracer::RUNGE_KUTTA_2ND_ORDER;
+                    paramsChanged = true;
+                }
+            }
+            
+            ImGui::EndCombo();
+        }
         paramsChanged |= ImGui::Checkbox("FlipX", &(vectorField->flipX));
         paramsChanged |= ImGui::Checkbox("FlipY", &(vectorField->flipY));
         paramsChanged |= ImGui::Checkbox("FlipZ", &(vectorField->flipZ));
