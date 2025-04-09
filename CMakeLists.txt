@@ -9,6 +9,9 @@ include_directories(/)
 include_directories(imgui)
 include_directories(imgui/backends)
 
+# Add the eigen include directory
+include_directories(eigen)
+
 add_executable(VCP
         streamline-visualization/src/core/DataReader.cpp
         streamline-visualization/src/extra/glad.c
