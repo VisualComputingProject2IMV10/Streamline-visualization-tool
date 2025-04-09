@@ -22,11 +22,6 @@ VectorField::VectorField(const char* filename) {
     this->dimY = dimY;
     this->dimZ = dimZ;
 
-    // Set default spacing if not available in the header
-    this->spacingX = 1.0f;
-    this->spacingY = 1.0f;
-    this->spacingZ = 1.0f;
-
     this->zeroMask = calculateZeroMask();
 
     std::cout << "Loaded vector field: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
@@ -37,11 +32,6 @@ VectorField::VectorField(float* tensorField, int dimX, int dimY, int dimZ)
     this->dimX = dimX;
     this->dimY = dimY;
     this->dimZ = dimZ;
-
-    // Set default spacing if not available in the header
-    this->spacingX = 1.0f;
-    this->spacingY = 1.0f;
-    this->spacingZ = 1.0f;
 
     //initialize the vector field
     this->data = new float[dimX * dimY * dimZ * 3];
@@ -124,7 +114,6 @@ void VectorField::getVector(int x, int y, int z, float& vx, float& vy, float& vz
     int index = 3 * (z + dimZ * (y + dimY * x));
 
     // Extract vector components
-    //todo add a flip axis button
     vx = flipX ? -1.0f * data[index] : data[index];
     vy = flipY ? -1.0f * data[index + 1] : data[index + 1];
     vz = flipZ ? -1.0f * data[index + 2] : data[index + 2];
@@ -218,7 +207,7 @@ bool VectorField::isInBounds(float x, float y, float z) const {
 bool* VectorField::getZeroMask(int dimX, int dimY, int dimZ)
 {
     //check if dimensions match
-    if (this->getDimX() != dimX || this->getDimY() != dimY || this->getDimZ() != dimZ)
+    if (this->dimX != dimX || this->dimY != dimY || this->dimZ != dimZ)
     {
         throw std::length_error("Dimensions should match up with the vector field");
     }

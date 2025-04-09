@@ -19,7 +19,7 @@ add_executable(VCP
         streamline-visualization/src/core/VectorField.cpp
         streamline-visualization/src/core/StreamlineTracer.cpp
         streamline-visualization/src/core/StreamlineRenderer.cpp
-        streamline-visualization/src/core/MouseSampler.cpp
+        
 
         # ImGui core files
         imgui/imgui.cpp

@@ -62,56 +62,19 @@ public:
      */
     bool isInBounds(float x, float y, float z) const;
 
-
-
     // Accessor methods
     bool* getZeroMask(int dimX, int dimY, int dimZ);
 
-    /**
-     * @brief Get X dimension of the vector field
-     * @return Number of voxels in X dimension
-     */
-    int getDimX() const { return dimX; }
-
-    /**
-     * @brief Get Y dimension of the vector field
-     * @return Number of voxels in Y dimension
-     */
-    int getDimY() const { return dimY; }
-
-    /**
-     * @brief Get Z dimension of the vector field
-     * @return Number of voxels in Z dimension
-     */
-    int getDimZ() const { return dimZ; }
-
-    /**
-     * @brief Get voxel spacing in X dimension
-     * @return Spacing in X dimension
-     */
-    float getSpacingX() const { return spacingX; }
-
-    /**
-     * @brief Get voxel spacing in Y dimension
-     * @return Spacing in Y dimension
-     */
-    float getSpacingY() const { return spacingY; }
-
-    /**
-     * @brief Get voxel spacing in Z dimension
-     * @return Spacing in Z dimension
-     */
-    float getSpacingZ() const { return spacingZ; }
 
     //some nifti files have the axis flipped
     bool flipX = false;
     bool flipY = false;
     bool flipZ = false;
 
+    short dimX, dimY, dimZ;  ///< Dimensions of the vector field
+
 private:
     float* data;         ///< Vector data (3 components per voxel)
-    short dimX, dimY, dimZ;  ///< Dimensions of the vector field
-    float spacingX, spacingY, spacingZ; ///< Voxel spacing
     bool* zeroMask; ///Mask of zero vectors
 
     bool* calculateZeroMask();

@@ -88,7 +88,6 @@ private:
      * @return Vector of points representing the directional streamline
      */
     std::vector<Point3D> traceStreamlineDirection(const Point3D& seed, int direction);
-    std::vector<Point3D> traceStreamlineDirection1(const Point3D& seed, int direction);
 
     /**
      * @brief Perform Euler integration step
@@ -97,7 +96,6 @@ private:
      * @return Next position
      */
     glm::vec3 eulerIntegrate(glm::vec3 pos, float step);
-    Point3D eulerIntegrate1(const Point3D& pos, float step);
 
     /**
      * @brief Perform 2th-order Runge-Kutta integration step
@@ -106,5 +104,4 @@ private:
      * @return Next position
      */
     glm::vec3 rk2Integrate(glm::vec3 pos, float step);
-    Point3D rk4Integrate1(const Point3D& pos, float step);
 };

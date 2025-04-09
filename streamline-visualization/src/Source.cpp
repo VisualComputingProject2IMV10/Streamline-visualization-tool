@@ -18,8 +18,8 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/string_cast.hpp>
+//#define GLM_ENABLE_EXPERIMENTAL
+//#include <glm/gtx/string_cast.hpp>
 
 #include <string>
 #include <cmath>
@@ -63,7 +63,7 @@ const char* currentScalarFile = BRAIN_SCALAR_PATH;
 const char* currentVectorFile = BRAIN_VECTOR_PATH;
 const char* currentTensorFile = BRAIN_TENSORS_PATH;
 
-bool useTensors = true;
+bool useTensors = false;
 
 // Streamline parameters
 float stepSize = 0.5f;
@@ -92,7 +92,6 @@ int currentSliceY = 0;
 int currentSliceZ = 0;
 int selectedAxis = AXIS_Z; //0 = x, 1 = y, 2 = z
 
-
 // Interactive seeding
 glm::vec3 mouseSeedLoc;
 bool useMouseSeeding = false;
@@ -100,9 +99,6 @@ bool paramsChanged = false; //for the gui
 bool viewAxisChanged = false;
 int mouseSeedDensity = 100;
 float mouseSeedRadius = 3;
-
-//std::vector<std::vector<Point3D>> manualStreamlines;
-//float manualSeedLineWidth = 3.0f;
 
 //------------------------------------------------------------------------------
 // Function declarations
@@ -114,10 +110,8 @@ void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void key_callback(GLFWwindow* window, int keyCode, int scancode, int actionType, int mods);
 
 // Data handling functions
-void seedStreamlinesAtPoint(float x, float y, float z);
 float sampleScalarData(float x, float y, float z);
 
 void updatePVMatrices();
@@ -236,7 +230,7 @@ void loadCurrentDataFiles()
 }
 
 /**
- * Update the vertex data to show the currently selected slice.
+ * Initialize the background images
  */
 void initImgPlane()
 {
@@ -347,6 +341,9 @@ std::vector<std::vector<Point3D>> generateStreamlines()
     }
 }
 
+/**
+ * (Possibly) update parameters and call generateStreamlines()
+ */
 void regenerateStreamLines()
 {
     paramsChanged = false;
@@ -365,6 +362,9 @@ void regenerateStreamLines()
     }
 }
 
+/**
+ * Update the perspective and view matrices.
+ */
 void updatePVMatrices()
 {
     //can keep a similar zoom level axis view, so long as the dimensions are al fairly similar
@@ -399,14 +399,7 @@ void updatePVMatrices()
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
-/**
- * @brief Process continuous keyboard input each frame
- *
- * This function handles continuous keyboard input for camera movement
- * and other real-time controls.
- *
- * @param window GLFW window handle
- */
+//process input each frame
 void processInput(GLFWwindow* window) {
     // Exit application when Escape is pressed
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
@@ -414,16 +407,7 @@ void processInput(GLFWwindow* window) {
     }
 }
 
-/**
- * @brief Handle mouse movement for camera control
- *
- * This callback processes mouse movement for camera rotation in both
- * standard and orbit camera modes.
- *
- * @param window GLFW window handle
- * @param xpos Current mouse X position
- * @param ypos Current mouse Y position
- */
+//handle mouse movement for the camera
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     // Standard camera control (non-orbit)
     bool moveCamera = /*cameraMode ||*/ (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS);
@@ -476,82 +460,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
-/**
- * @brief Handle window resize events
- *
- * This callback is triggered when the window is resized, ensuring
- * the OpenGL viewport matches the new window dimensions.
- *
- * @param window GLFW window handle
- * @param width New window width
- * @param height New window height
- */
+//Handle window resizing
 void frameBufferSizeCallback(GLFWwindow* window, int width, int height) {
     // Unused parameter
     (void)window;
 
     // Update OpenGL viewport to match the new window size
     glViewport(0, 0, width, height);
-}
-
-/**
- * @brief Generate and render a streamline from a specific seed point
- *
- * This function creates a streamline from a user-specified seed point,
- * adds it to the manual collection, and renders it immediately.
- *
- * @param x X coordinate of the seed point
- * @param y Y coordinate of the seed point
- * @param z Z coordinate of the seed point
- */
-void seedStreamlinesAtPoint(float x, float y, float z) {
-    //// Check if vector field exists
-    //if (!vectorField) return;
-
-    //// Clamp coordinates to valid range
-    //x = std::max(0.0f, std::min(x, (float)dimX - 1.0f));
-    //y = std::max(0.0f, std::min(y, (float)dimY - 1.0f));
-    //z = std::max(0.0f, std::min(z, (float)dimZ - 1.0f));
-
-    //std::cout << "Seeding streamline at (" << x << ", " << y << ", " << z << ")" << std::endl;
-
-    //// Create a seed point
-    //Point3D seed(x, y, z);
-
-    //// Create a streamline tracer with current parameters
-    //StreamlineTracer tracer(vectorField, stepSize, maxSteps, maxLength);
-
-    //// Trace streamline in both directions from the seed
-    //std::vector<Point3D> newStreamline = tracer.traceStreamline(seed);
-
-    //// Only add if streamline has sufficient points
-    //if (newStreamline.size() > 2) {
-    //    // Store in manual streamlines collection for persistence
-    //    manualStreamlines.push_back(newStreamline);
-
-    //    // Prepare container for just this new streamline
-    //    std::vector<std::vector<Point3D>> singleStreamline;
-    //    singleStreamline.push_back(newStreamline);
-
-    //    // Add to existing renderer for immediate visualization
-    //    if (streamlineRenderer) {
-    //        // Save current line width
-    //        float oldWidth = lineWidth;
-
-    //        // Use special width for manually seeded streamlines
-    //        glLineWidth(manualSeedLineWidth);
-
-    //        // Add to renderer
-    //        streamlineRenderer->addStreamlines(singleStreamline);
-
-    //        // Restore original line width
-    //        glLineWidth(oldWidth);
-    //    }
-
-    //    std::cout << "Added a new streamline with " << newStreamline.size() << " points" << std::endl;
-    //} else {
-    //    std::cout << "Generated streamline was too short (" << newStreamline.size() << " points)" << std::endl;
-    //}
 }
 
 /**
@@ -623,19 +538,10 @@ float sampleScalarData(float x, float y, float z) {
 }
 
 /**
- * @brief Handle mouse button events
- *
- * This callback processes mouse clicks for orbit mode,
- * interactive streamline seeding, and other interaction.
- *
- * @param window GLFW window handle
- * @param button Mouse button that was pressed/released
- * @param action GLFW_PRESS or GLFW_RELEASE
- * @param mods Modifier keys (shift, ctrl, alt)
+ * Process mouse clicks.
  */
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) 
 {
-
     (void)mods;  // Unused parameter
     ImGuiIO& io = ImGui::GetIO();
     if (io.WantCaptureMouse) return;
@@ -673,40 +579,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
                     mouseSeedLoc = glm::vec3(ray_world.x + dimX / 2.0f, ray_world.y + dimY / 2.0f, ray_world.z);
                 }
                 
-                printf("Vector: (%.2f, %.2f, %.2f)\n", mouseSeedLoc.x, mouseSeedLoc.y, mouseSeedLoc.z);
                 regenerateStreamLines();
             }
-
         }
     }
 }
 
 /**
- * @brief Handle keyboard input events
- *
- * This callback processes key presses and releases for camera control
- * and application shortcuts.
- *
- * @param window GLFW window handle
- * @param keyCode Key code of the pressed/released key
- * @param scancode Platform-specific scancode
- * @param actionType Action type (press, release, repeat)
- * @param mods Modifier keys (shift, ctrl, alt)
- */
-void key_callback(GLFWwindow* window, int keyCode, int scancode, int actionType, int mods) {
-    
-}
-
-
-/**
- * @brief Handle mouse scroll wheel events
- *
- * This callback adjusts the camera field of view (zoom) based on
- * mouse scroll wheel movement.
- *
- * @param window GLFW window handle
- * @param xoffset Horizontal scroll offset (usually 0)
- * @param yoffset Vertical scroll offset
+ * Process mouse scrolling.
  */
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
@@ -742,7 +622,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
         projection = glm::ortho(xFov, (float)dimX - xFov, yFov, (float)dimY - yFov, NEAR_CAM_PLANE, FAR_CAM_PLANE);
     }
-
 }
 
 /**
@@ -754,13 +633,19 @@ void switchDataSet()
     std::cout << "Updated Vector File Path: " << currentVectorFile << std::endl;
 
     // Initial data loading
-    //loadData();
     loadCurrentDataFiles();
     initImgPlane();
 
     //Initialize a streamline tracer and renderer
     streamlineTracer = new StreamlineTracer(vectorField, stepSize, maxSteps, maxLength, maxAngle, integrationMethod); //TODO should this be a pointer?
     streamlineRenderer = new StreamlineRenderer(streamlineShader);
+
+
+    //the brain dataset has flipped x values
+    if (currentDataset == BRAIN_DATASET)
+    {
+        vectorField->flipX = true;
+    }
 
     //generate the initial streamlines
     std::vector<std::vector<Point3D>> streamlines = generateStreamlines();
@@ -803,7 +688,6 @@ int main(int argc, char* argv[]) {
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetKeyCallback(window, key_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     // Initialize GLAD
@@ -813,7 +697,6 @@ int main(int argc, char* argv[]) {
     }
 
     // Configure OpenGL state
-    //glEnable(GL_DEPTH_TEST);
     glLineWidth(lineWidth);
 
     //enable line antialiasing
@@ -830,8 +713,7 @@ int main(int argc, char* argv[]) {
     // Create shaders
     sliceShader = new Shader("shaders/vertexShader1.vs", "shaders/FragShader1.fs");
     streamlineShader = new Shader("shaders/streamlineVertex.vs", "shaders/streamlineFragment.fs");
-    glyphShader = new Shader("shaders/glyphVertex.vs", "shaders/glyphFragment.fs");
-    std::cout << "Shaders loaded with ID's: " << sliceShader->ID  << ", " << streamlineShader->ID << ", " << glyphShader->ID << std::endl;
+    std::cout << "Shaders loaded with ID's: " << sliceShader->ID  << ", " << streamlineShader->ID << std::endl;
 
     // Setup ImGui
     IMGUI_CHECKVERSION();
@@ -853,8 +735,7 @@ int main(int argc, char* argv[]) {
         processInput(window);
 
         // Clear the screen
-        //glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
-        glClearColor(0.1f, 0.054f, 0.3f, 1.0f); //some kind of dark blue
+        glClearColor(25.0f / 255.0f, 25.0f / 255.0f, 30.0f / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //image plane model matrix
@@ -868,22 +749,15 @@ int main(int argc, char* argv[]) {
         else if (selectedAxis == AXIS_Y) 
         {
             model = glm::translate(model, glm::vec3(-0.5f, 0.0f, -0.5f));
-            //a bit hacky, but fixes an off by one error
-            //model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
         }
         else if (selectedAxis == AXIS_Z)
         {
             model = glm::translate(model, glm::vec3(-0.5f, -0.5f, 0.0f));
-            //a bit hacky, but fixes an off by one error
-            //model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
         }
-
-
 
         // Create model matrix for streamlines
         glm::mat4 streamlineModel = glm::mat4(1.0f);
         streamlineModel = glm::translate(streamlineModel, glm::vec3((float)-dimX / 2.0f, (float)-dimY / 2.0f, (float)-dimZ / 2.0f));
-        //streamlineModel = glm::translate(streamlineModel, glm::vec3(0.0f, 0.0f, 0.0f));
 
         // Set up depth testing
         glEnable(GL_DEPTH_TEST);
@@ -898,10 +772,9 @@ int main(int argc, char* argv[]) {
             sliceShader->use();
             glBindTexture(GL_TEXTURE_3D, texture);
             sliceShader->setInt("selectedAxis", selectedAxis);
-            sliceShader->setMat4("projection", projection); //TODO if this is an inefficient operation we should only set the projection matrix at the start
+            sliceShader->setMat4("projection", projection);
             sliceShader->setMat4("view", view);
             sliceShader->setMat4("model", model);
-
 
             if (selectedAxis == AXIS_Z)
             {
@@ -1043,9 +916,9 @@ int main(int argc, char* argv[]) {
                     paramsChanged = true;
                 }
             }
-            
             ImGui::EndCombo();
         }
+
         paramsChanged |= ImGui::Checkbox("FlipX", &(vectorField->flipX));
         paramsChanged |= ImGui::Checkbox("FlipY", &(vectorField->flipY));
         paramsChanged |= ImGui::Checkbox("FlipZ", &(vectorField->flipZ));
@@ -1053,8 +926,6 @@ int main(int argc, char* argv[]) {
         // Streamline display section
         ImGui::Separator();
         ImGui::Text("Streamline Seeding");
-
-        ImGui::TextWrapped("Coming soon: tensor eigenvector extraction");
 
         // Slice position control
         ImGui::TextWrapped("View axis");
@@ -1065,7 +936,6 @@ int main(int argc, char* argv[]) {
         paramsChanged |= viewAxisChanged;
         if (viewAxisChanged)
         {
-            std::cout << "hello world" << std::endl;
             updatePVMatrices();
             viewAxisChanged = false;
         }
@@ -1087,6 +957,7 @@ int main(int argc, char* argv[]) {
 
         ImGui::TextWrapped("Seed radius");
         paramsChanged |= ImGui::SliderFloat("##SeedRadius", &mouseSeedRadius, 0.01f, 20.0f);
+
 
         ImGui::Separator();
         ImGui::BeginDisabled(!paramsChanged);

@@ -16,15 +16,6 @@
 class StreamlineRenderer {
 public:
     /**
-     * @brief Color schemes for streamline visualization
-     */
-    enum ColorMode {
-        GRADIENT_COLOR = 0,   ///< Color gradient based on streamline position
-        DIRECTION_COLOR = 1,  ///< Color based on streamline direction
-        MANUAL_SEED_COLOR = 2 ///< Highlight manually seeded streamlines
-    };
-
-    /**
      * @brief Constructor
      * @param shaderProgram Shader to use for rendering
      * @param width Width of the streamlines in pixels
@@ -37,33 +28,11 @@ public:
     ~StreamlineRenderer();
 
     /**
-     * @brief Set the coloring method for streamlines
-     * @param mode The color mode to use
-     */
-    void setColorMode(ColorMode mode) { colorMode = mode; }
-
-    /**
-     * @brief Add additional streamlines to existing ones
-     * @param newStreamlines Vector of streamlines to add
-     */
-    void addStreamlines(const std::vector<std::vector<Point3D>>& newStreamlines);
-
-    /**
      * @brief Prepare a complete set of streamlines for rendering
      * @param streamlines Vector of streamlines to render
      * @param isToyDataset Flag for special coloring of toy dataset
      */
     void prepareStreamlines(const std::vector<std::vector<Point3D>>& streamlines, bool isToyDataset = false);
-
-    /**
-     * @brief Filter streamlines to focus on those near a slice plane
-     * @param streamlines Complete set of streamlines
-     * @param sliceAxis Axis of the slice (0=X, 1=Y, 2=Z)
-     * @param slicePos Position along the axis
-     * @param threshold Distance threshold for filtering
-     */
-    void filterStreamlinesForSlice(const std::vector<std::vector<Point3D>>& streamlines,
-                                  int sliceAxis, int slicePos, int threshold);
 
     /**
      * @brief Render the streamlines
@@ -86,5 +55,4 @@ private:
     int vertexCount;          ///< Number of vertices in the streamlines
     int bufferIndexCount;      ///< number of indices of vertices to be drawn through the EBO
     float lineWidth;          ///< Width of streamlines in pixels
-    ColorMode colorMode;      ///< Current coloring mode
 };

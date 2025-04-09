@@ -62,22 +62,6 @@ int readData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ
     return EXIT_SUCCESS;
 }
 
-void printSlice(float* data, int slice, int dimX, int dimY, int dimZ) {
-    if (!data || slice < 0 || slice >= dimZ) {
-        std::cerr << "Error: Invalid parameters for printSlice" << std::endl;
-        return;
-    }
-
-    std::cout << "Slice " << slice << " data:" << std::endl;
-    for (int y = 0; y < dimY; y++) {
-        for (int x = 0; x < dimX; x++) {
-            int index = slice * dimX * dimY + y * dimX + x;
-            std::cout << data[index] << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
 int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ) {
     // Open NIFTI file
     std::ifstream file(filename, std::ios::binary);
@@ -197,12 +181,6 @@ int readVectorData(const char* filename, float*& data, int& dimX, int& dimY, int
 
     // Allocate memory for data (3 components per voxel)
     data = new float[numVoxels * numComponents];
-
-    // Skip to the data section if there's an extended header
-    /*if (header.vox_offset > sizeof(nifti_1_header)) {
-        file.seekg(header.vox_offset, std::ios::beg);
-    }*/
-
    
     for (int v = 0; v < numComponents; v++)
     {
