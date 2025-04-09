@@ -58,19 +58,22 @@ float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 //initial settings
-const char* currentDataset = TOY_DATASET;
-const char* currentScalarFile = TOY_SCALAR_PATH;
-const char* currentVectorFile = TOY_VECTOR_PATH;
+const char* currentDataset = BRAIN_DATASET;
+const char* currentScalarFile = BRAIN_SCALAR_PATH;
+const char* currentVectorFile = BRAIN_VECTOR_PATH;
+const char* currentTensorFile = BRAIN_TENSORS_PATH;
+
+bool useTensors = true;
 
 // Streamline parameters
 float stepSize = 0.5f;
-float maxLength = 50.0f;
-int maxSteps = 3;
+float maxLength = 500.0f;
+int maxSteps = 1;
 float maxAngleDegrees = 45;
 float maxAngle = maxAngleDegrees * (std::_Pi_val / 180); //about 45 degrees
 const char* integrationMethod = StreamlineTracer::RUNGE_KUTTA_2ND_ORDER;
 
-float lineWidth = 2.0f;
+float lineWidth = 1.0f;
 
 // Global objects
 VectorField* vectorField = nullptr;
@@ -96,7 +99,7 @@ bool useMouseSeeding = false;
 bool paramsChanged = false; //for the gui
 bool viewAxisChanged = false;
 int mouseSeedDensity = 100;
-float mouseSeedRadius = 5;
+float mouseSeedRadius = 3;
 
 //std::vector<std::vector<Point3D>> manualStreamlines;
 //float manualSeedLineWidth = 3.0f;
@@ -163,7 +166,19 @@ void loadCurrentDataFiles()
 
     //loading vector data
     try {
-        vectorField = new VectorField(currentVectorFile); //todo why is this a pointer in the first place?
+        if (useTensors)
+        {
+            float* tensorData;
+            int tensorDimX, tensorDimY, tensorDimZ;
+
+            readTensorData(currentTensorFile, tensorData, tensorDimX, tensorDimY, tensorDimZ);
+            vectorField = new VectorField(tensorData, dimX, dimY, dimZ);
+            delete[] tensorData;
+        }
+        else 
+        {
+            vectorField = new VectorField(currentVectorFile); //todo why is this a pointer in the first place?
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error loading vector field: " << e.what() << std::endl;
         return;
@@ -947,6 +962,7 @@ int main(int argc, char* argv[]) {
                     currentScalarFile = TOY_SCALAR_PATH;
                     currentVectorFile = TOY_VECTOR_PATH;
                     currentDataset = TOY_DATASET;
+                    useTensors = false; //toy dataset doesn't have tensor field
                     
                     switchDataSet();
                 }
@@ -965,6 +981,15 @@ int main(int argc, char* argv[]) {
             }
             ImGui::EndCombo();
         }
+
+        ImGui::TextWrapped("Use tensor field for seeding");
+        ImGui::BeginDisabled(currentDataset == TOY_DATASET);
+        if (ImGui::Checkbox("##useTensors", &useTensors))
+        {
+            //a little ugly to do it this way, but no time to make it prettier so we don't reload the unneeded stuff
+            switchDataSet(); 
+        }
+        ImGui::EndDisabled();
 
         // Streamline parameters section
         ImGui::Separator();

@@ -81,7 +81,8 @@ void printSlice(float* data, int slice, int dimX, int dimY, int dimZ) {
 int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int& dimZ) {
     // Open NIFTI file
     std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
+    if (!file.is_open()) 
+    {
         std::cerr << "Error: Could not open file " << filename << std::endl;
         return EXIT_FAILURE;
     }
@@ -90,14 +91,16 @@ int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int
     nifti_1_header header;
     file.read(reinterpret_cast<char*>(&header), sizeof(nifti_1_header));
 
-    if (!file.good()) {
+    if (!file.good()) 
+    {
         std::cerr << "Error: Failed to read NIFTI header" << std::endl;
         file.close();
         return EXIT_FAILURE;
     }
 
     // Validate NIFTI format
-    if (strncmp(header.magic, "n+1", 3) != 0 && strncmp(header.magic, "ni1", 3) != 0) {
+    if (strncmp(header.magic, "n+1", 3) != 0 && strncmp(header.magic, "ni1", 3) != 0) 
+    {
         std::cerr << "Error: Not a valid NIFTI file" << std::endl;
         file.close();
         return EXIT_FAILURE;
@@ -107,26 +110,46 @@ int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int
     dimX = header.dim[1];
     dimY = header.dim[2];
     dimZ = header.dim[3];
-    int dimT = header.dim[4];  // Time dimension (should be 6 for tensor data)
 
-    if (dimT != 6) {
-        std::cerr << "Warning: Expected 6 tensor components, found " << dimT << std::endl;
+    int numVoxels = dimX * dimY * dimZ;
+    int numComponents = 6; // Symetrical tensor so 6 components
+
+    if (header.dim[4] != numComponents)
+    {
+        std::cerr << "Error: invalid number of tensor components: " << header.dim[4] << std::endl;
+        file.close();
+        return EXIT_FAILURE;
     }
 
-    // For tensor data, we need 6 components per voxel (D11, D22, D33, D12, D13, D23)
-    int numVoxels = dimX * dimY * dimZ;
-    int numComponents = dimT; // Usually 6 for tensor data
-
-    // Allocate memory for data
+    // Allocate memory for data (6 components per voxel)
     data = new float[numVoxels * numComponents];
 
-    // Skip to the data section if there's an extended header
-    if (header.vox_offset > sizeof(nifti_1_header)) {
-        file.seekg(header.vox_offset, std::ios::beg);
-    }
 
-    // Read the data
-    file.read(reinterpret_cast<char*>(data), numVoxels * numComponents * sizeof(float));
+    for (int v = 0; v < numComponents; v++)
+    {
+        for (int k = 0; k < dimZ; k++)
+        {
+            for (int j = 0; j < dimY; j++)
+            {
+                for (int i = 0; i < dimX; i++)
+                {
+                    int index = i * (dimZ * dimY * numComponents) + j * (dimZ * numComponents) + k * numComponents + v;
+                    float value;
+                    //file.read((char*)&value, sizeof(value));
+                    if (!file.read((char*)&value, sizeof(value))) {
+                        std::cerr << "Failed to read value at index: " << index << std::endl;
+                        // Handle error appropriately
+                    }
+
+
+                    //error compensation for near zero values
+                    if (value != 0.0f && (value <= 0.00001f && value >= -0.00001f)) value = 0.0f;
+
+                    data[index] = value;
+                }
+            }
+        }
+    }
 
     if (!file.good()) {
         std::cerr << "Error: Failed to read tensor data" << std::endl;
@@ -137,8 +160,7 @@ int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int
     }
 
     file.close();
-    std::cout << "Successfully read tensor data: " << dimX << "x" << dimY << "x" << dimZ
-              << " with " << numComponents << " components per voxel" << std::endl;
+    std::cout << "Successfully read tensor data: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
 
     return EXIT_SUCCESS;
 }

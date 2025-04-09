@@ -443,7 +443,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
         //TODO something might be wrong with the angle constraint
         //printf("Vector: (%.2f, %.2f, %.2f) direction: %i\n", nextPos.x, nextPos.y, nextPos.z, direction);
         //std::cout << "Angle between vectors: " << std::acosf(cosAngle) << " max angle: " << this->maxAngle << std::endl;
-        if (!(std::acosf(cosAngle) < this->maxAngle) && false)
+        if (!(std::acosf(cosAngle) < this->maxAngle))
         {
             path.shrink_to_fit(); //release unused memory
             return path;

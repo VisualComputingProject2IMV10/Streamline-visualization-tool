@@ -32,6 +32,79 @@ VectorField::VectorField(const char* filename) {
     std::cout << "Loaded vector field: " << dimX << "x" << dimY << "x" << dimZ << std::endl;
 }
 
+VectorField::VectorField(float* tensorField, int dimX, int dimY, int dimZ)
+{
+    this->dimX = dimX;
+    this->dimY = dimY;
+    this->dimZ = dimZ;
+
+    // Set default spacing if not available in the header
+    this->spacingX = 1.0f;
+    this->spacingY = 1.0f;
+    this->spacingZ = 1.0f;
+
+    //initialize the vector field
+    this->data = new float[dimX * dimY * dimZ * 3];
+
+    //fill the vectorfield with the tensor eigenvectors
+    for (int x = 0; x < this->dimX; x++)
+    {
+        for (int y = 0; y < this->dimY; y++)
+        {
+            for (int z = 0; z < this->dimZ; z++)
+            {
+                Eigen::Vector3f eigenVector = getMajorEigenVector(tensorField, x, y, z);
+
+                // Calculate index into data array (3 components per voxel)
+                int index = 3 * (z + dimZ * (y + dimY * x));
+                this->data[index + 0] = eigenVector(0);
+                this->data[index + 1] = eigenVector(1);
+                this->data[index + 2] = eigenVector(2);
+            }
+        }
+    }
+
+    this->zeroMask = calculateZeroMask();
+
+    std::cout << "Initialized vector field from tensor field" << std::endl;
+}
+
+Eigen::Vector3f VectorField::getMajorEigenVector(float* tensorField, int x, int y, int z)
+{
+    int index = 6 * (z + this->dimZ * (y + this->dimY * x));
+
+    //load the tensor data
+    float t11 = tensorField[index + 0];
+    float t22 = tensorField[index + 1];
+    float t33 = tensorField[index + 2];
+    float t12 = tensorField[index + 3];
+    float t13 = tensorField[index + 4];
+    float t23 = tensorField[index + 5];
+
+    if (t11 == 0.0f && t22 == 0.0f && t33 == 0.0f && t12 == 0.0f && t13 == 0.0f && t23 == 0.0f)
+    {
+        Eigen::Vector3f v = { 0.0f,0.0f,0.0f };
+        return v;
+    }
+
+    Eigen::Matrix3f tensor;
+    tensor << 
+        t11, t12, t13,
+        t12, t22, t23,
+        t13, t23, t33;
+
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigensolver(tensor);
+    if (eigensolver.info() != Eigen::Success) 
+    {
+        //make sure the solver converges
+        std::cout << "Error while calculating eigenvalues" << std::endl;
+        std::cout << tensor << "\n\n";
+        std::cout << t11 << ", " << t22 << ", " << t33 << ", " << t12 << ", " << t13 << ", " << t23 << std::endl;
+    }
+    //std:: cout << eigensolver.eigenvalues() << std::endl;
+    return eigensolver.eigenvectors().col(2);
+}
+
 VectorField::~VectorField() {
     // Free allocated memory
     delete[] data;

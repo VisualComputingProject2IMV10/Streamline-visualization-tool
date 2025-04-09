@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <Eigen/Dense>
 
 /**
  * @class VectorField
@@ -19,6 +20,11 @@ public:
      * @param filename Path to the vector field file (NIFTI format)
      */
     VectorField(const char* filename);
+
+    /**
+     * Construct vector field from the eigenvectors of the tensor field.
+     */
+    VectorField(float* tensorField, int dimX, int dimY, int dimZ);
 
     /**
      * @brief Destructor - frees allocated memory
@@ -109,4 +115,6 @@ private:
     bool* zeroMask; ///Mask of zero vectors
 
     bool* calculateZeroMask();
+
+    Eigen::Vector3f getMajorEigenVector(float* tensorField, int x, int y, int z);
 };
