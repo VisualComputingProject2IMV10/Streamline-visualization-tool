@@ -135,15 +135,11 @@ int readTensorData(const char* filename, float*& data, int& dimX, int& dimY, int
                 {
                     int index = i * (dimZ * dimY * numComponents) + j * (dimZ * numComponents) + k * numComponents + v;
                     float value;
-                    //file.read((char*)&value, sizeof(value));
-                    if (!file.read((char*)&value, sizeof(value))) {
-                        std::cerr << "Failed to read value at index: " << index << std::endl;
-                        // Handle error appropriately
-                    }
-
+                    file.read((char*)&value, sizeof(value));
 
                     //error compensation for near zero values
                     if (value != 0.0f && (value <= 0.00001f && value >= -0.00001f)) value = 0.0f;
+                    if (isnan(value)) value = 0.0f; //default to zero to make sure we keep proper vectors
 
                     data[index] = value;
                 }

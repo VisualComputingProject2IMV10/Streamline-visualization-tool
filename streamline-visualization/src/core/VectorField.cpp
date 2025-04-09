@@ -46,6 +46,8 @@ VectorField::VectorField(float* tensorField, int dimX, int dimY, int dimZ)
     //initialize the vector field
     this->data = new float[dimX * dimY * dimZ * 3];
 
+    std::cout << "Start processing tensors" << std::endl;
+
     //fill the vectorfield with the tensor eigenvectors
     for (int x = 0; x < this->dimX; x++)
     {
@@ -101,8 +103,8 @@ Eigen::Vector3f VectorField::getMajorEigenVector(float* tensorField, int x, int 
         std::cout << tensor << "\n\n";
         std::cout << t11 << ", " << t22 << ", " << t33 << ", " << t12 << ", " << t13 << ", " << t23 << std::endl;
     }
-    //std:: cout << eigensolver.eigenvalues() << std::endl;
-    return eigensolver.eigenvectors().col(2);
+
+    return eigensolver.eigenvectors().col(2); //the third eigenvector corresponds to the largest eigenvalue
 }
 
 VectorField::~VectorField() {
