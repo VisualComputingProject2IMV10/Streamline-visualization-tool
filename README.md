@@ -5,28 +5,22 @@ This project is a 3D streamline visualization tool for exploring vector and tens
 
 ### Streamline Parameter Sliders
 The tool has multiple parameters that can be changed when generating the streamlines:
-##### Step size
-The size of the integration step.
-
-##### Max Streamline length
-The maximum length of the streamlines. Note that currently this beheaves very similarly to the max integration steps setting due to the constant step size.
-
-##### Max integration steps
-Maximum number of steps the integration algorithm runs.
-
-##### Max angle between steps
-The maximum angle between the direction vectors generated in each step.
-
-##### Line Width
-Line width of the streamlines in the visualization. Note that the line width doesn't scale with zooming so this may beheave slightly unintuitive.
-
-##### Integration method
-The method used for integrating the trajectory between steps. Currently the options are:
-- Euler forward.
-- Second order Runge-Kutta.
-
-##### Flip axis
-Some datasets may have some components of the vectors flipped. These settings allow for manually flipping the components if this seems to be an issue for the tracing.
+- Step size
+  - The size of the integration step.
+- Max Streamline length
+  - The maximum length of the streamlines. Note that currently this beheaves very similarly to the max integration steps setting due to the constant step size.
+- Max integration steps
+  - Maximum number of steps the integration algorithm runs.
+- Max angle between steps
+  - The maximum angle between the direction vectors generated in each step.
+- Line Width
+  - Line width of the streamlines in the visualization. Note that the line width doesn't scale with zooming so this may beheave slightly unintuitive.
+- Integration method
+  - The method used for integrating the trajectory between steps. Currently the options are:
+    - Euler forward.
+    - Second order Runge-Kutta.
+- Flip axis
+  - Some datasets may have some components of the vectors flipped. These settings allow for manually flipping the components if this seems to be an issue for the tracing.
 
 
 ### Camera Navigation
