@@ -199,9 +199,9 @@ void VectorField::interpolateVector(float x, float y, float z, float& vx, float&
 
 bool VectorField::isInBounds(float x, float y, float z) const {
     // Check if point is within the field bounds (allowing for interpolation)
-    return (x >= 0 && x <= dimX-1 &&
-            y >= 0 && y <= dimY-1 &&
-            z >= 0 && z <= dimZ-1);
+    return (x >= 0.0f && x <= dimX-1.0f &&
+            y >= 0.0f && y <= dimY-1.0f &&
+            z >= 0.0f && z <= dimZ-1.0f);
 }
 
 bool* VectorField::getZeroMask(int dimX, int dimY, int dimZ)

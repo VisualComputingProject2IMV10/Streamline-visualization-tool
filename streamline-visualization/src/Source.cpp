@@ -303,8 +303,8 @@ std::vector<std::vector<Point3D>> generateStreamlines()
     }
 
     std::vector<std::vector<Point3D>> streamlines;
-    //try
-    //{
+    try
+    {
         std::cout << "Started seeding" << std::endl;
 
         std::vector<Point3D> seeds;
@@ -333,12 +333,12 @@ std::vector<std::vector<Point3D>> generateStreamlines()
             std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
         }
         return streamlines;
-    //} 
-    //catch (const std::exception& e) 
-    //{
-    //   std::cerr << "Error generating streamlines: " << e.what() << std::endl;
-    //    return streamlines;
-    //}
+    } 
+    catch (const std::exception& e) 
+    {
+       std::cerr << "Error generating streamlines: " << e.what() << std::endl;
+        return streamlines;
+    }
 }
 
 /**

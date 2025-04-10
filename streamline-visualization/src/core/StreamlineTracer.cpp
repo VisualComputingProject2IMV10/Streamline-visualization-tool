@@ -220,13 +220,15 @@ std::vector<Point3D> StreamlineTracer::traceStreamline(const Point3D& seed) {
     std::vector<Point3D> forwardPath = traceStreamlineDirection(seed, 1);
     std::vector<Point3D> backwardPath = traceStreamlineDirection(seed, -1);
 
-    // Combine paths (remove duplicate seed point)
-    //todo see if this can be optimized
-    streamline.reserve(forwardPath.size() + backwardPath.size() - 1);
-    streamline.clear();
-    streamline.insert(streamline.end(), backwardPath.rbegin(), backwardPath.rend());
-    streamline.push_back(seed);
-    streamline.insert(streamline.end(), forwardPath.begin(), forwardPath.end());
+    // Combine paths
+    if (forwardPath.size() + backwardPath.size() > 0) //we skip empty paths
+    {
+        streamline.reserve(forwardPath.size() + backwardPath.size() + 1);
+
+        streamline.insert(streamline.end(), backwardPath.rbegin(), backwardPath.rend());
+        streamline.push_back(seed);
+        streamline.insert(streamline.end(), forwardPath.begin(), forwardPath.end());
+    }
 
     streamline.shrink_to_fit();
 
@@ -254,10 +256,22 @@ glm::vec3 StreamlineTracer::rk2Integrate(glm::vec3 pos, float step)
     //x0 = pos
     glm::vec3 vx0; //v(x0)
     vectorField->interpolateVector(pos.x, pos.y, pos.z, vx0.x, vx0.y, vx0.z);
+
+    //check for zero vector
+    if (vx0 == glm::vec3(0.0f))
+    {
+        return pos;
+    }
+
     glm::vec3 x1 = pos + 0.5f * step * glm::normalize(vx0);//midpoint
 
     glm::vec3 vx1;
     vectorField->interpolateVector(x1.x, x1.y, x1.z, vx1.x, vx1.y, vx1.z); //get the vector at the midpoint
+
+    if (vx1 == glm::vec3(0.0f))
+    {
+        return pos;
+    }
 
     glm::vec3 next = x1 + 0.5f * step * glm::normalize(vx1);
     return next;
@@ -268,6 +282,11 @@ glm::vec3 StreamlineTracer::eulerIntegrate(glm::vec3 pos, float step)
     //do first step manually so the loop can check angles more easily
     glm::vec3 vectorAtPos;
     vectorField->interpolateVector(pos.x, pos.y, pos.z, vectorAtPos.x, vectorAtPos.y, vectorAtPos.z);
+
+    if (vectorAtPos == glm::vec3(0.0f))
+    {
+        return pos;
+    }
 
     // Euler integration: p(t+h) = p(t) + h*v(t)
     glm::vec3 next = pos + step * glm::normalize(vectorAtPos);
@@ -314,7 +333,7 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
     currentPos = nextPos;
 
     //calculate the rest of the path
-    for (int step = 1; step < maxSteps/* && totalLength < maxLength*/; step++)
+    for (int step = 1; step < maxSteps && totalLength < maxLength; step++)
     {
         glm::vec3 nextPos;
         if (strcmp(this->integrationMethod, StreamlineTracer::EULER) == 0)
@@ -332,6 +351,12 @@ std::vector<Point3D> StreamlineTracer::traceStreamlineDirection(const Point3D& s
             return path;
         }
 
+        //check if the algorithm hasn't hit a zero direction vector point since then it will get stuck
+        if (nextPos == currentPos)
+        {
+            path.shrink_to_fit(); //release unused memory
+            return path;
+        }
 
         //check if the next point is still in bounds
         if (!inZeroMask(nextPos))
@@ -405,5 +430,6 @@ std::vector<std::vector<Point3D>> StreamlineTracer::traceAllStreamlines(const st
         }
     }
 
+    streamlines.shrink_to_fit();
     return streamlines;
 }
