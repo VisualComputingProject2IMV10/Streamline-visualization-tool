@@ -5,17 +5,44 @@ This project is a 3D streamline visualization tool for exploring vector and tens
 
 
 ### Streamline Parameter Sliders
+- Step size
+- Max Streamline length
+- Max integration steps
+- Max angle between steps
+- Line Width
+- Integration method
+- Flip axis
 
 
 ### Camera Navigation
-
+You control the camera position by dragging while holding the right mouse button.
+You can zoom in/out by scrolling the mouse wheel.
 
 ### Interactivity
 
 #### Mouse seeding
+In the UI you can turn on mouse seeding. This function allows you to click on the screen and seed random points in a sphere around the area clicked. You can control the radius of the sphere and how many seed points are to be generated through the UI.
 
+#### Future work: volume rendering
+Something that could have been nice to add would be volume rendering of the brain dataset to allow for more dynamic and interactive viewing. For this a seperate system would have to be made for mouse seeding like a 3D cursor.
 
 ## Visualization Techniques
+This tool used multiple visualization techniques:
+
+### Streamline rendering
+The streamlines are rendered from a series of trajectories calculated by the tool, that are then flattened together into a single vertex buffer. The tool also uses a single element array buffer for all the streamlines together with the openGL primitive restart function to allow for rendering all streamlines in a single draw call. This is much more efficient than a seperate draw call and buffer for each streamline, since these are expensive operations. When filling the buffers (and vectors) the needed memory is also allocated ahead of time to prevent expensive memory allocation operations.
+When calculating the streamlines, they are also cut off when reaching outside of the nonzero part of the volume. In the visualization this may not always seem to be the case, but this is due to the irregular shape of the volume and the 3D nature of the streamlines.
+
+### Spatial coloring
+The streamlines are color coded as dx -> r, dy -> g, dz -> b. This gives the streamlines some sense of spatial meaning, making it easier to see the trajectories.
+
+### Background images
+The tool utilizes background images from slices of the data volume to give more context for the streamlines and more dynamic seeding more precise.
+The background images are also overlaid with a mask that sets each voxel where the vector field has a zero vector to transparent. This allows one to easier see the boundaries of the image.
+
+### Orthographic camera with angle switching
+The visualization uses an orthographic camera projection to make sure all the streamlines line up with their location in the background image. This makes it easier to see the actual trajectories of the streamlines through the volume. The camera can also switch between the view axis. 
+A feature that might have been nice to add would be viewing all three axis's at the same time, like in some medical imaging software. This could also have given a nice different seeding option where the "seed point" would be the intersection of the three selected planes.
 
 ## Dependencies
 - OpenGL
