@@ -65,8 +65,12 @@ A feature that might have been nice to add would be viewing all three axis's at 
 1. Ensure all dependencies are installed.
 2. Use CMake to compile and run the code.
 
-### Installing dependencies Visual Studio on windows
+### Installing dependencies using Visual Studio on windows
 When using visual studio and windows one can install the dependencies by using vcpkg. A usage tutorial by microsoft is given [here](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started-vs?pivots=shell-powershell).
+
+### Installing dependencies using Homebrew on Mac
+When using Mac, we suggest that use Homebrew to install missing packages. Homebrew installion can be found [here](https://brew.sh/).
+Other than that, the build instructions should be the same as the general ones.
 
 ## Potential Improvements
 - Add more advanced filtering techniques.
