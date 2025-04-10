@@ -62,10 +62,15 @@ A feature that might have been nice to add would be viewing all three axis's at 
 - ImGui (included in repo)
 
 ## Build Instructions
-1. Ensure all dependencies are installed
-2. Use CMake to compile and run the code
+1. Ensure all dependencies are installed.
+2. Use CMake to compile and run the code.
+
+### Installing dependencies Visual Studio on windows
+When using visual studio and windows one can install the dependencies by using vcpkg. A usage tutorial by microsoft is given [here](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started-vs?pivots=shell-powershell).
 
 ## Potential Improvements
-- Add more advanced filtering techniques
-- Implement tensor field visualization
-- Optimize performance for large datasets so that parameters can be adjusted in real time
+- Add more advanced filtering techniques.
+- Implement tensor field visualization.
+- Optimize performance for large datasets so that parameters can be adjusted in real time.
+- Three axis view with seeding at the intersection of the planes.
+- Volume rendering with orbit camera to better see streamlines.
