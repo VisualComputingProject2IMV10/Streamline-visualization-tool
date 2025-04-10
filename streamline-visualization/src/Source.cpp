@@ -97,7 +97,7 @@ glm::vec3 mouseSeedLoc;
 bool useMouseSeeding = false;
 bool paramsChanged = false; //for the gui
 bool viewAxisChanged = false;
-int mouseSeedDensity = 100;
+int mouseSeedDensity = 1;
 float mouseSeedRadius = 3;
 
 //------------------------------------------------------------------------------
@@ -939,6 +939,8 @@ int main(int argc, char* argv[]) {
             ImGui::EndCombo();
         }
 
+        ImGui::Separator();
+
         ImGui::TextWrapped("Flip vector field components.");
         paramsChanged |= ImGui::Checkbox("FlipX", &(vectorField->flipX));
         paramsChanged |= ImGui::Checkbox("FlipY", &(vectorField->flipY));
@@ -951,7 +953,7 @@ int main(int argc, char* argv[]) {
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
 
         ImGui::TextWrapped("Seed density");
-        paramsChanged |= ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 0, 500);
+        paramsChanged |= ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 1, 50);
 
         ImGui::TextWrapped("Seed radius");
         paramsChanged |= ImGui::SliderFloat("##SeedRadius", &mouseSeedRadius, 0.01f, 20.0f);

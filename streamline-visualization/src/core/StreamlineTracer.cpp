@@ -138,7 +138,9 @@ std::vector<Point3D> StreamlineTracer::generateMouseSeeds(int sliceX, int sliceY
         if (!vectorField->isInBounds(seedLoc.x, seedLoc.y, sliceZ)) return seeds;
         if (!inZeroMask(glm::vec3(seedLoc.x, seedLoc.y, sliceZ))) return seeds;
     }
-    int maxSeeds = std::roundf(seedRadius) * roundf(density);
+    //calculate the volume of the seeding area
+    float seedAttenuation = 0.5f;
+    int maxSeeds = std::roundf(seedAttenuation * (1.3333f * 3.1415f * seedRadius * seedRadius * seedRadius) * density);
     seeds.reserve(maxSeeds); //pre allocate memory
     
 
