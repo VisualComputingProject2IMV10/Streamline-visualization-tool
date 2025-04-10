@@ -238,23 +238,23 @@ void initImgPlane()
     {
         //position                   //texture coord: the slice is selected in the vertex shader
         //current axis Z
-        0.0f, 0.0f, -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
-        dimX, 0.0f, -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
-        0.0f, dimY, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
-        dimX, dimY, -2.0f * dimZ,    1.0f, 1.0f, 0.5f,  //top right
+               0.0f,        0.0f, -2.0f * dimZ,    0.0f, 0.0f, 0.5f, //bottom left
+        (float)dimX,        0.0f, -2.0f * dimZ,    1.0f, 0.0f, 0.5f, //bottom right
+               0.0f, (float)dimY, -2.0f * dimZ,    0.0f, 1.0f, 0.5f, //top left
+        (float)dimX, (float)dimY, -2.0f * dimZ,    1.0f, 1.0f, 0.5f, //top right
 
         //current axis Y
-        0.0f, 2.0f * dimY, 0.0f,    0.0f, 0.5f, 0.0f, //bottom left
-        dimX, 2.0f * dimY, 0.0f,    1.0f, 0.5f, 0.0f, //bottom right
-        0.0f, 2.0f * dimY, dimZ,    0.0f, 0.5f, 1.0f, //top left
-        dimX, 2.0f * dimY, dimZ,    1.0f, 0.5f, 1.0f,  //top right
+               0.0f, 2.0f * dimY,        0.0f,    0.0f, 0.5f, 0.0f, //bottom left
+        (float)dimX, 2.0f * dimY,        0.0f,    1.0f, 0.5f, 0.0f, //bottom right
+               0.0f, 2.0f * dimY, (float)dimZ,    0.0f, 0.5f, 1.0f, //top left
+        (float)dimX, 2.0f * dimY, (float)dimZ,    1.0f, 0.5f, 1.0f, //top right
 
 
         //current axis X
-        -2.0f * dimX, 0.0f, 0.0f,    0.5f, 0.0f, 0.0f, //bottom left
-        -2.0f * dimX, 0.0f, dimZ,    0.5f, 0.0f, 1.0f, //bottom right
-        -2.0f * dimX, dimY, 0.0f,    0.5f, 1.0f, 0.0f, //top left
-        -2.0f * dimX, dimY, dimZ,    0.5f, 1.0f, 1.0f  //top right
+        -2.0f * dimX,        0.0f,        0.0f,    0.5f, 0.0f, 0.0f, //bottom left
+        -2.0f * dimX,        0.0f, (float)dimZ,    0.5f, 0.0f, 1.0f, //bottom right
+        -2.0f * dimX, (float)dimY,        0.0f,    0.5f, 1.0f, 0.0f, //top left
+        -2.0f * dimX, (float)dimY, (float)dimZ,    0.5f, 1.0f, 1.0f  //top right
     };
 
     unsigned int vertexIndices[] =
@@ -303,8 +303,8 @@ std::vector<std::vector<Point3D>> generateStreamlines()
     }
 
     std::vector<std::vector<Point3D>> streamlines;
-    try
-    {
+    //try
+    //{
         std::cout << "Started seeding" << std::endl;
 
         std::vector<Point3D> seeds;
@@ -333,12 +333,12 @@ std::vector<std::vector<Point3D>> generateStreamlines()
             std::cout << "No seeds generated, skipping streamline tracing" << std::endl;
         }
         return streamlines;
-    } 
-    catch (const std::exception& e) 
-    {
-        std::cerr << "Error generating streamlines: " << e.what() << std::endl;
-        return streamlines;
-    }
+    //} 
+    //catch (const std::exception& e) 
+    //{
+    //   std::cerr << "Error generating streamlines: " << e.what() << std::endl;
+    //    return streamlines;
+    //}
 }
 
 /**
@@ -813,20 +813,42 @@ int main(int argc, char* argv[]) {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // Create control panel window
-        ImGui::Begin("Streamline Controls");
+        // View control panel
+        ImGui::Begin("View controls");
 
         // Camera control section
-        ImGui::Separator();
         ImGui::Text("Camera Controls");
         ImGui::TextWrapped("Move the camera using the right mouse button.");
         ImGui::TextWrapped("Zoom using the mouse scrollwheel.");
 
-        // Data selection section
         ImGui::Separator();
-        ImGui::Text("Data Selection");
 
-        if (ImGui::BeginCombo("Dataset", currentDataset))
+        ImGui::TextWrapped("View axis");
+        viewAxisChanged |= ImGui::RadioButton("axis_x", &selectedAxis, AXIS_X); ImGui::SameLine();
+        viewAxisChanged |= ImGui::RadioButton("axis_y", &selectedAxis, AXIS_Y); ImGui::SameLine();
+        viewAxisChanged |= ImGui::RadioButton("axis_z", &selectedAxis, AXIS_Z);
+        paramsChanged |= viewAxisChanged; //allow reseeding when view axis is changed
+        if (viewAxisChanged)
+        {
+            updatePVMatrices();
+            viewAxisChanged = false;
+        }
+
+        //controls for the displayed background slice
+        paramsChanged |= ImGui::SliderInt("Slice X", &currentSliceX, 0, dimX - 1);
+        paramsChanged |= ImGui::SliderInt("Slice Y", &currentSliceY, 0, dimY - 1);
+        paramsChanged |= ImGui::SliderInt("Slice Z", &currentSliceZ, 0, dimZ - 1);
+
+        ImGui::End();
+
+
+        // Streamline settings control panel
+        ImGui::Begin("Streamline Controls");
+
+        // Data selection section
+        ImGui::TextWrapped("Dataset Selection");
+
+        if (ImGui::BeginCombo("##Dataset", currentDataset))
         {
             if (ImGui::Selectable(TOY_SCALAR_PATH))
             {
@@ -840,7 +862,6 @@ int main(int argc, char* argv[]) {
                     switchDataSet();
                 }
             }
-
             if (ImGui::Selectable(BRAIN_SCALAR_PATH))
             {
                 if (currentScalarFile != BRAIN_SCALAR_PATH || currentVectorFile != BRAIN_VECTOR_PATH)
@@ -868,18 +889,9 @@ int main(int argc, char* argv[]) {
         ImGui::Separator();
         ImGui::Text("Streamline Parameters");
 
-        ImGui::TextWrapped("Line width");
-        if (ImGui::SliderFloat("##lineWidth", &lineWidth, 1.0f, 5.0f, "%.2f"))
-        {
-            //todo make linewidth relative to zoom level.
-            streamlineRenderer->setLineWidth(lineWidth);
-        }
-
-        // Step size slider
         ImGui::TextWrapped("Step size");
         paramsChanged |= ImGui::SliderFloat("##stepSize", &stepSize, 0.1f, 2.0f, "%.3f");
         
-        // Max length slider
         ImGui::TextWrapped("Max streamline length");
         paramsChanged |= ImGui::SliderFloat("##maxLength", &maxLength, 1.0f, 1000.0f, "%.1f");
         
@@ -887,13 +899,21 @@ int main(int argc, char* argv[]) {
         ImGui::TextWrapped("Max integration steps");
         paramsChanged |= ImGui::SliderInt("##maxSteps", &maxSteps, 1, 2000);
 
-        // Max angle slider
         ImGui::TextWrapped("Max angle between steps (degrees)");
         if (ImGui::SliderFloat("##maxAngle", &maxAngleDegrees, 1.0f, 90.0f, "%.1f"))
         {
             maxAngle = maxAngleDegrees * (std::_Pi_val / 180);
             paramsChanged = true;
         }
+
+        ImGui::TextWrapped("Line width");
+        if (ImGui::SliderFloat("##lineWidth", &lineWidth, 1.0f, 5.0f, "%.2f"))
+        {
+            //TODO: make linewidth relative to zoom level.
+            streamlineRenderer->setLineWidth(lineWidth);
+        }
+
+        ImGui::Separator();
 
         //integration method
         ImGui::TextWrapped("Integration method");
@@ -919,39 +939,17 @@ int main(int argc, char* argv[]) {
             ImGui::EndCombo();
         }
 
+        ImGui::TextWrapped("Flip vector field components.");
         paramsChanged |= ImGui::Checkbox("FlipX", &(vectorField->flipX));
         paramsChanged |= ImGui::Checkbox("FlipY", &(vectorField->flipY));
         paramsChanged |= ImGui::Checkbox("FlipZ", &(vectorField->flipZ));
 
-        // Streamline display section
+        //Mouse seeding
         ImGui::Separator();
-        ImGui::Text("Streamline Seeding");
-
-        // Slice position control
-        ImGui::TextWrapped("View axis");
-        
-        viewAxisChanged |= ImGui::RadioButton("axis_x", &selectedAxis, AXIS_X); ImGui::SameLine();
-        viewAxisChanged |= ImGui::RadioButton("axis_y", &selectedAxis, AXIS_Y); ImGui::SameLine();
-        viewAxisChanged |= ImGui::RadioButton("axis_z", &selectedAxis, AXIS_Z);
-        paramsChanged |= viewAxisChanged;
-        if (viewAxisChanged)
-        {
-            updatePVMatrices();
-            viewAxisChanged = false;
-        }
-
-        int maxSliceIndexX = dimX - 1;
-        int maxSliceIndexY = dimY - 1;
-        int maxSliceIndexZ = dimZ - 1;
-        paramsChanged |= ImGui::SliderInt("Slice X", &currentSliceX, 0, maxSliceIndexX);
-        paramsChanged |= ImGui::SliderInt("Slice Y", &currentSliceY, 0, maxSliceIndexY);
-        paramsChanged |= ImGui::SliderInt("Slice Z", &currentSliceZ, 0, maxSliceIndexZ);
+        ImGui::TextWrapped("Mouse seeding settings");
 
         paramsChanged |= ImGui::Checkbox("Mouse seeding", &useMouseSeeding);
 
-
-        ImGui::Separator();
-        ImGui::TextWrapped("Mouse seeding settings");
         ImGui::TextWrapped("Seed density");
         paramsChanged |= ImGui::SliderInt("##SeedDensity", &mouseSeedDensity, 0, 500);
 
